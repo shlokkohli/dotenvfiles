@@ -5,15 +5,15 @@ return {
     'lewis6991/gitsigns.nvim',
     opts = {
       signs = {
-        add = { text = '+' },
-        change = { text = '~' },
+        add = { text = '▎' },
+        change = { text = '▎' },
         delete = { text = '_' },
         topdelete = { text = '‾' },
         changedelete = { text = '~' },
       },
       signs_staged = {
-        add = { text = '+' },
-        change = { text = '~' },
+        add = { text = '▎' },
+        change = { text = '▎' },
         delete = { text = '_' },
         topdelete = { text = '‾' },
         changedelete = { text = '~' },
@@ -29,6 +29,10 @@ return {
 
         map('n', ']c', gs.next_hunk, { desc = 'Next Git Hunk' })
         map('n', '[c', gs.prev_hunk, { desc = 'Prev Git Hunk' })
+        
+        -- VS Code style: peek at the original code before it was changed
+        map('n', '<leader>hp', gs.preview_hunk, { desc = 'Preview git hunk (like VS Code)' })
+        map('n', '<leader>hr', gs.reset_hunk, { desc = 'Revert (reset) this git change' })
       end,
     },
   },

@@ -221,6 +221,9 @@ return {
       terraformls = {},
       jsonls = {},
       yamlls = {},
+      emmet_ls = {
+        filetypes = { 'css', 'html', 'javascript', 'javascriptreact', 'less', 'sass', 'scss', 'typescriptreact' },
+      },
 
       lua_ls = {
         -- cmd = {...},

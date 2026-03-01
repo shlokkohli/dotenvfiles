@@ -88,16 +88,16 @@ return {
         git_status = {
           symbols = {
             -- Change type
-            added = '', -- or "✚", but this is redundant info if you use git_status_colors on the name
-            modified = '', -- or "", but this is redundant info if you use git_status_colors on the name
-            deleted = '✖', -- this can only be used in the git_status source
-            renamed = '󰁕', -- this can only be used in the git_status source
+            added = 'U',
+            modified = 'M',
+            deleted = '✖',
+            renamed = 'R',
             -- Status type
-            untracked = '',
+            untracked = 'U',
             ignored = '',
-            unstaged = '󰄱',
-            staged = '',
-            conflict = '',
+            unstaged = '',
+            staged = '',
+            conflict = 'C',
           },
         },
         -- If you don't want to use these columns, you can set `enabled = false` for each of them individually
@@ -228,7 +228,7 @@ return {
         -- "open_current",  -- netrw disabled, opening a directory opens within the
         -- window like netrw would, regardless of window.position
         -- "disabled",    -- netrw left alone, neo-tree does not handle opening dirs
-        use_libuv_file_watcher = false, -- This will use the OS level file watchers to detect changes
+        use_libuv_file_watcher = true, -- Auto-refresh tree when files change on disk
         -- instead of relying on nvim autocmd events.
         window = {
           mappings = {
