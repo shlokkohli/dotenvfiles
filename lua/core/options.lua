@@ -29,7 +29,7 @@ vim.o.pumheight = 10 -- Pop up menu height (default: 0)
 vim.o.conceallevel = 0 -- So that `` is visible in markdown files (default: 1)
 vim.opt.signcolumn = 'yes' -- Keep signcolumn on by default (default: 'auto')
 vim.o.fileencoding = 'utf-8' -- The encoding written to a file (default: 'utf-8')
-vim.o.cmdheight = 1 -- More space in the Neovim command line for displaying messages (default: 1)
+vim.o.cmdheight = 0 -- No command line area, statusline sticks to the bottom
 vim.o.breakindent = true -- Enable break indent (default: false)
 vim.o.updatetime = 250 -- Decrease update time (default: 4000)
 vim.o.timeoutlen = 300 -- Time to wait for a mapped sequence to complete (in milliseconds) (default: 1000)
@@ -42,3 +42,82 @@ vim.opt.iskeyword:append '-' -- Hyphenated words recognized by searches (default
 vim.opt.formatoptions:remove { 'c', 'r', 'o' } -- Don't insert the current comment leader automatically for auto-wrapping comments using 'textwidth', hitting <Enter> in insert mode, or hitting 'o' or 'O' in normal mode. (default: 'croql')
 vim.opt.runtimepath:remove '/usr/share/vim/vimfiles' -- Separate Vim plugins from Neovim in case Vim still in use (default: includes this path if Vim is installed)
 vim.opt.linespace = 8
+
+-- Friendly quit commands: show clear messages instead of cryptic E37/E162
+vim.api.nvim_create_user_command('Q', function(opts)
+  local ok, err = pcall(vim.cmd, 'q' .. (opts.bang and '!' or ''))
+  if not ok then
+    if err:match('E37') or err:match('E162') then
+      vim.notify(
+        ' You have unsaved changes!\n'
+          .. '  :wq  → save and quit\n'
+          .. '  :q!  → discard changes and quit\n'
+          .. '  :wqa → save all files and quit\n'
+          .. '  :qa! → discard all and quit',
+        vim.log.levels.WARN
+      )
+    else
+      vim.notify(err, vim.log.levels.ERROR)
+    end
+  end
+end, { bang = true, desc = 'Quit with friendly messages' })
+
+vim.api.nvim_create_user_command('Qa', function(opts)
+  local ok, err = pcall(vim.cmd, 'qa' .. (opts.bang and '!' or ''))
+  if not ok then
+    if err:match('E37') or err:match('E162') then
+      vim.notify(
+        ' You have unsaved files!\n'
+          .. '  :wqa → save all and quit\n'
+          .. '  :qa! → discard all changes and quit',
+        vim.log.levels.WARN
+      )
+    else
+      vim.notify(err, vim.log.levels.ERROR)
+    end
+  end
+end, { bang = true, desc = 'Quit all with friendly messages' })
+
+-- Redirect :q and :qa to the friendly versions
+vim.cmd [[cabbrev q Q]]
+vim.cmd [[cabbrev qa Qa]]
+
+-- Auto-detect when buffer content matches the saved file and clear "modified" flag
+-- This lets you :q without errors if you manually revert your changes
+vim.api.nvim_create_autocmd({ 'TextChanged', 'TextChangedI' }, {
+  group = vim.api.nvim_create_augroup('auto-unmodify', { clear = true }),
+  callback = function(ev)
+    local buf = ev.buf
+    -- Only check named files that are marked as modified
+    local filename = vim.api.nvim_buf_get_name(buf)
+    if filename == '' or not vim.bo[buf].modified then
+      return
+    end
+    -- Read the file from disk and compare with buffer content
+    local ok, disk_lines = pcall(vim.fn.readfile, filename)
+    if not ok then
+      return
+    end
+    local buf_lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+    if #disk_lines ~= #buf_lines then
+      return
+    end
+    for i = 1, #disk_lines do
+      if disk_lines[i] ~= buf_lines[i] then
+        return
+      end
+    end
+    -- Content matches the saved file, clear the modified flag
+    vim.bo[buf].modified = false
+  end,
+})
+
+-- Treat .env files as shell scripts for proper syntax highlighting
+vim.filetype.add {
+  filename = {
+    ['.env'] = 'sh',
+  },
+  pattern = {
+    ['.*%.env%..*'] = 'sh',  -- .env.local, .env.staging, etc.
+  },
+}

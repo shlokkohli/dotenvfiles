@@ -19,6 +19,7 @@ return {
       defaults = {
         preview = {
           treesitter = false,
+          wrap = true,  -- wrap long lines so matches at end of line are visible
         },
         mappings = {
           i = {
@@ -42,6 +43,9 @@ return {
         },
       },
       extensions = {
+        fzf = {
+          fuzzy = false,  -- exact substring matching instead of fuzzy
+        },
         ['ui-select'] = {
           require('telescope.themes').get_dropdown(),
         },

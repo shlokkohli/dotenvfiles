@@ -281,7 +281,9 @@ return {
     }
 
     vim.diagnostic.config {
-      virtual_text = true,
+      virtual_text = {
+        spacing = 1,
+      },
       float = {
         focusable = true,
         border = 'rounded',
@@ -290,6 +292,9 @@ return {
         prefix = '',
       },
     }
+
+    -- Fade unused variables/functions like VS Code does
+    vim.api.nvim_set_hl(0, 'DiagnosticUnnecessary', { fg = '#6b7280', italic = true })
 
     -- Override float to enforce wrapping and max_width
     local orig_util_open_float = vim.diagnostic.open_float
