@@ -22,6 +22,7 @@ return { -- Autocompletion
     'hrsh7th/cmp-nvim-lsp',
     'hrsh7th/cmp-buffer',
     'hrsh7th/cmp-path',
+    { 'roobert/tailwindcss-colorizer-cmp.nvim', config = true },
   },
 
   config = function()
@@ -136,7 +137,8 @@ return { -- Autocompletion
             buffer = '[Buffer]',
             path = '[Path]',
           })[entry.source.name]
-          return vim_item
+          -- Apply Tailwind color preview squares
+          return require('tailwindcss-colorizer-cmp').formatter(entry, vim_item)
         end,
       },
     }

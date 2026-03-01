@@ -173,10 +173,14 @@ return {
         capabilities = {
           documentFormattingProvider = false,
           documentRangeFormattingProvider = false,
+          -- Disable semantic tokens — Tree-sitter handles highlighting instantly,
+          -- LSP semantic tokens cause a visible "flash" when the server attaches
+          semanticTokensProvider = vim.NIL,
         },
         on_attach = function(client)
           client.server_capabilities.documentFormattingProvider = false
           client.server_capabilities.documentRangeFormattingProvider = false
+          client.server_capabilities.semanticTokensProvider = nil
         end,
       }, -- tsserver is deprecated
       ruff = {},
@@ -198,7 +202,20 @@ return {
       },
       html = { filetypes = { 'html', 'twig', 'hbs' } },
       cssls = {},
-      tailwindcss = {},
+      tailwindcss = {
+  root_dir = function(fname)
+    local util = require("lspconfig.util")
+    return util.root_pattern(
+      "tailwind.config.js",
+      "tailwind.config.cjs",
+      "tailwind.config.ts",
+      "postcss.config.js",
+      "postcss.config.cjs",
+      "package.json",
+      ".git"
+    )(fname)
+  end,
+},
       dockerls = {},
       sqlls = {},
       terraformls = {},

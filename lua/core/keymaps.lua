@@ -109,12 +109,28 @@ vim.keymap.set('n', '<A-z>', ':set wrap!<CR>', { noremap = true, silent = true }
 
 -- personal changes
 vim.keymap.set('t', '<Esc>', [[<C-\><C-n>]], { desc = 'Exit terminal mode' })
-vim.keymap.set('n', '<leader>tt', ':tabnew | terminal<CR>', { silent = true })
 vim.api.nvim_create_autocmd('TermOpen', {
   callback = function()
     vim.cmd 'startinsert'
   end,
 })
+
+-- Smart open terminal: works even when no file is open (e.g. nvim opened on a folder)
+local function open_terminal()
+  local buf = vim.api.nvim_get_current_buf()
+  local buftype = vim.bo[buf].buftype
+  local filetype = vim.bo[buf].filetype
+  local is_special = buftype ~= '' or filetype == 'neo-tree' or filetype == 'netrw'
+  if is_special then
+    vim.cmd 'new | terminal'
+  else
+    vim.cmd 'terminal'
+  end
+end
+
+vim.keymap.set('n', '<leader>tt', open_terminal, { desc = 'Open terminal' })
+vim.api.nvim_create_user_command('Terminal', open_terminal, { desc = 'Open terminal' })
+
 -- barbar keymaps
 vim.keymap.set('n', '<A-,>', '<Cmd>BufferPrevious<CR>', { silent = true })
 vim.keymap.set('n', '<A-.>', '<Cmd>BufferNext<CR>', { silent = true })
