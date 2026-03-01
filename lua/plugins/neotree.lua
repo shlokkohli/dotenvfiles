@@ -88,13 +88,13 @@ return {
         git_status = {
           symbols = {
             -- Change type
-            added = 'U',
+            added = 'A',
             modified = 'M',
-            deleted = '✖',
+            deleted = 'D',
             renamed = 'R',
             -- Status type
             untracked = 'U',
-            ignored = '',
+            ignored = '◌',
             unstaged = '',
             staged = '',
             conflict = 'C',
@@ -311,5 +311,14 @@ return {
     vim.cmd [[nnoremap \ :Neotree reveal<cr>]]
     vim.keymap.set('n', '<leader>e', ':Neotree toggle position=left<CR>', { noremap = true, silent = true }) -- focus file explorer
     vim.keymap.set('n', '<leader>ngs', ':Neotree float git_status<CR>', { noremap = true, silent = true }) -- open git status window
+
+    -- Auto-refresh neo-tree on neogit events so git status marks clear immediately like VS Code
+    vim.api.nvim_create_autocmd("User", {
+      pattern = { "NeogitStatusRefresh", "NeogitCommitComplete", "NeogitPushComplete" },
+      callback = function()
+        require("neo-tree.sources.manager").refresh("filesystem")
+        require("neo-tree.sources.manager").refresh("git_status")
+      end,
+    })
   end,
 }
