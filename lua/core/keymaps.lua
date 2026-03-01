@@ -65,8 +65,6 @@ vim.keymap.set('n', '<Right>', ':vertical resize +2<CR>', opts)
 -- Buffers
 vim.keymap.set('n', '<Tab>', '<Cmd>BufferNext<CR>', opts)
 vim.keymap.set('n', '<S-Tab>', '<Cmd>BufferPrevious<CR>', opts)
-vim.keymap.set('n', '<C-Tab>', '<Cmd>BufferNext<CR>', opts)
-vim.keymap.set('n', '<C-S-Tab>', '<Cmd>BufferPrevious<CR>', opts)
 vim.keymap.set('n', '<leader>b', '<cmd> enew <CR>', opts) -- new buffer
 vim.keymap.set('n', '<leader>x', '<Cmd>BufferClose<CR>', opts)
 
@@ -86,6 +84,8 @@ vim.keymap.set('n', '<leader>to', ':tabnew<CR>', opts) -- open new tab
 vim.keymap.set('n', '<leader>tx', ':tabclose<CR>', opts) -- close current tab
 vim.keymap.set('n', '<leader>tn', ':tabn<CR>', opts) --  go to next tab
 vim.keymap.set('n', '<leader>tp', ':tabp<CR>', opts) --  go to previous tab
+vim.keymap.set('n', '<C-Tab>', ':tabn<CR>', opts) --  go to next tab
+vim.keymap.set('n', '<C-S-Tab>', ':tabp<CR>', opts) --  go to previous tab
 
 -- Toggle line wrapping
 vim.keymap.set('n', '<leader>lw', '<cmd>set wrap!<CR>', opts)
