@@ -41,4 +41,21 @@ return {
       require('colorizer').setup()
     end,
   },
+  {
+    -- Smooth scrolling for window movement commands (Ctrl-D, Ctrl-U, etc.)
+    'karb94/neoscroll.nvim',
+    config = function()
+      require('neoscroll').setup({
+        -- Exclude C-u and C-d from default setup so we can override their speed
+        mappings = { '<C-b>', '<C-f>', '<C-y>', '<C-e>', 'zt', 'zz', 'zb' },
+      })
+      
+      local neoscroll = require('neoscroll')
+      local keymap = vim.keymap
+      
+      -- Custom mapping using the new helper functions
+      keymap.set({'n', 'v', 'x'}, '<C-u>', function() neoscroll.ctrl_u({ duration = 100 }) end)
+      keymap.set({'n', 'v', 'x'}, '<C-d>', function() neoscroll.ctrl_d({ duration = 100 }) end)
+    end,
+  },
 }

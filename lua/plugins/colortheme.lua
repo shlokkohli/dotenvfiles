@@ -38,6 +38,25 @@ return {
       hi(0, 'Statement',                   { fg = '#c678dd' }) -- fallback
       hi(0, 'StorageClass',                { fg = '#c678dd' }) -- const, let, var
 
+      -- ── Vim built-in TypeScript/JavaScript syntax fallbacks ──────────
+      -- When Treesitter isn't active for TSX/JSX, Vim uses these groups
+      hi(0, 'typescriptVariable',          { fg = '#c678dd' }) -- const, let, var
+      hi(0, 'typescriptImport',            { fg = '#c678dd' }) -- import
+      hi(0, 'typescriptExport',            { fg = '#c678dd' }) -- export
+      hi(0, 'typescriptStatementKeyword',  { fg = '#c678dd' }) -- return, if, else, etc.
+      hi(0, 'typescriptOperator',          { fg = '#c678dd' }) -- typeof, instanceof
+      hi(0, 'typescriptBraces',            { fg = '#abb2bf' }) -- { }
+      hi(0, 'typescriptFuncKeyword',       { fg = '#c678dd' }) -- function
+      hi(0, 'typescriptIdentifierName',    { fg = '#e06c75' }) -- variable names
+      hi(0, 'typescriptCall',              { fg = '#e06c75' }) -- function call args
+      hi(0, 'typescriptFuncName',          { fg = '#61afef' }) -- function names
+      hi(0, 'typescriptArrowFunc',         { fg = '#c678dd' }) -- =>
+      hi(0, 'typescriptString',            { fg = '#98c379' }) -- strings
+      hi(0, 'typescriptTemplate',          { fg = '#98c379' }) -- template literals
+      hi(0, 'typescriptNumber',            { fg = '#d19a66' }) -- numbers
+      hi(0, 'typescriptBoolean',           { fg = '#d19a66' }) -- true/false
+      hi(0, 'typescriptNull',              { fg = '#d19a66' }) -- null/undefined
+
       -- ── Functions & Methods ─────────────────────────────────────────
       -- function names, method names, calls — blue in One Dark Pro
       hi(0, '@function',                   { fg = '#61afef' })

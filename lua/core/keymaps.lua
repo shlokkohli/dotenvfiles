@@ -34,7 +34,6 @@ vim.keymap.set('v', 'd', '"_d', { noremap = true, silent = true })
 vim.keymap.set('v', '_d', 'd', { noremap = true, silent = true })
 
 -- save file
-vim.keymap.set('n', '<C-s>', '<cmd> w <CR>', opts)
 
 -- save file without auto-formatting
 vim.keymap.set('n', '<leader>sn', '<cmd>noautocmd w <CR>', opts)
@@ -102,6 +101,15 @@ vim.keymap.set('n', '[d', vim.diagnostic.goto_prev, { desc = 'Go to previous dia
 vim.keymap.set('n', ']d', vim.diagnostic.goto_next, { desc = 'Go to next diagnostic message' })
 vim.keymap.set('n', '<leader>d', vim.diagnostic.open_float, { desc = 'Open floating diagnostic message' })
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostics list' })
+
+vim.keymap.set('n', '<A-l>', '5zl', { silent = true })
+vim.keymap.set('n', '<A-h>', '5zh', { silent = true })
+-- Many macOS terminals send Meta instead of Alt
+vim.keymap.set('n', '<M-l>', '5zl', { silent = true })
+vim.keymap.set('n', '<M-h>', '5zh', { silent = true })
+-- macOS specific: if Option key types special characters instead of sending Alt
+vim.keymap.set('n', '¬', '5zl', { silent = true }) -- Option+L
+vim.keymap.set('n', '˙', '5zh', { silent = true }) -- Option+H
 
 -- option backspace to remove word in insert mode
 vim.keymap.set('i', '<M-BS>', '<C-G>u<C-W>', { noremap = true })

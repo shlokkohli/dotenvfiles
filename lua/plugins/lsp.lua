@@ -222,7 +222,7 @@ return {
       jsonls = {},
       yamlls = {},
       emmet_ls = {
-        filetypes = { 'css', 'html', 'javascript', 'javascriptreact', 'less', 'sass', 'scss', 'typescriptreact' },
+        filetypes = { 'html', 'css', 'less', 'sass', 'scss' },
       },
 
       lua_ls = {

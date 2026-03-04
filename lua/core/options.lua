@@ -109,6 +109,8 @@ vim.api.nvim_create_autocmd({ 'TextChanged', 'TextChangedI' }, {
     end
     -- Content matches the saved file, clear the modified flag
     vim.bo[buf].modified = false
+    -- Notify Neo-tree so the [+] indicator updates immediately
+    vim.api.nvim_exec_autocmds('BufModifiedSet', { buffer = buf })
   end,
 })
 
@@ -121,3 +123,32 @@ vim.filetype.add {
     ['.*%.env%..*'] = 'sh',  -- .env.local, .env.staging, etc.
   },
 }
+
+-- Smart JSX detection: auto-detect JSX in .js/.ts files (e.g. Vite projects)
+-- Scans the first 50 lines for JSX patterns and switches filetype accordingly
+vim.api.nvim_create_autocmd({ 'BufRead', 'BufNewFile' }, {
+  group = vim.api.nvim_create_augroup('jsx-detect', { clear = true }),
+  pattern = { '*.js', '*.ts' },
+  callback = function(ev)
+    local lines = vim.api.nvim_buf_get_lines(ev.buf, 0, 50, false)
+    local content = table.concat(lines, '\n')
+
+    -- Check for JSX patterns
+    local has_jsx = content:match('<%u')           -- <Component (uppercase = component)
+      or content:match('return%s*%(?\n?%s*<')       -- return ( <div> or return <div>
+      or content:match('<%w[%w%-]*[%s/>]')          -- <div>, <span />, <my-comp>
+      or content:match('/>')                         -- self-closing tags
+      or content:match("from%s+['\"]react['\"]")    -- import from 'react'
+      or content:match('React%.createElement')       -- React.createElement
+      or content:match('jsx')                        -- @jsx pragma or jsxImportSource
+
+    if has_jsx then
+      local ext = vim.fn.expand('%:e')
+      if ext == 'js' then
+        vim.bo[ev.buf].filetype = 'javascriptreact'
+      elseif ext == 'ts' then
+        vim.bo[ev.buf].filetype = 'typescriptreact'
+      end
+    end
+  end,
+})

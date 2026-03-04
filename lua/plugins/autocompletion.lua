@@ -87,7 +87,7 @@ return { -- Autocompletion
         ['<C-Space>'] = cmp.mapping.complete {},
         ['<CR>'] = cmp.mapping.confirm {
           behavior = cmp.ConfirmBehavior.Replace,
-          select = true,
+          select = false,
         },
         ['<C-l>'] = cmp.mapping(function()
           if luasnip.expand_or_locally_jumpable() then
@@ -122,9 +122,8 @@ return { -- Autocompletion
       sources = cmp.config.sources({
         { name = 'nvim_lsp' },
         { name = 'luasnip' },
+        { name = 'buffer', keyword_length = 2 },
         { name = 'path' },
-      }, {
-        { name = 'buffer' },
       }),
 
       formatting = {
