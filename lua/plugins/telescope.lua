@@ -17,6 +17,12 @@ return {
   config = function()
     require('telescope').setup {
       defaults = {
+        layout_strategy = 'horizontal',
+        layout_config = {
+          horizontal = {
+            preview_width = 0.65,
+          },
+        },
         preview = {
           treesitter = false,
           wrap = true,  -- wrap long lines so matches at end of line are visible
@@ -62,7 +68,15 @@ return {
     vim.keymap.set('n', '<leader>sk', builtin.keymaps, { desc = '[S]earch [K]eymaps' })
     vim.keymap.set('n', '<leader>sf', builtin.find_files, { desc = '[S]earch [F]iles' })
     vim.keymap.set('n', '<leader>ss', builtin.builtin, { desc = '[S]earch [S]elect Telescope' })
-    vim.keymap.set('n', '<leader>sw', builtin.grep_string, { desc = '[S]earch current [W]ord' })
+    vim.keymap.set('n', '<leader>sw', function()
+      builtin.grep_string {
+        layout_config = {
+          horizontal = {
+            preview_width = 0.65, -- Adjust this. 0.5 means 50%. A higher number like 0.8 makes the right side larger (up to 80%) and left side smaller. A lower number like 0.2 makes the right side smaller (20%).
+          },
+        },
+      }
+    end, { desc = '[S]earch current [W]ord' })
     vim.keymap.set('n', '<leader>sg', builtin.live_grep, { desc = '[S]earch by [G]rep' })
     vim.keymap.set('n', '<leader>sd', builtin.diagnostics, { desc = '[S]earch [D]iagnostics' })
     vim.keymap.set('n', '<leader>sr', builtin.resume, { desc = '[S]earch [R]esume' })

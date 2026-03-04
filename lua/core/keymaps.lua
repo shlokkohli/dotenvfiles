@@ -33,6 +33,9 @@ vim.keymap.set('v', 'd', '"_d', { noremap = true, silent = true })
 -- visual mode: _d = cut (yank + delete)
 vim.keymap.set('v', '_d', 'd', { noremap = true, silent = true })
 
+-- visual mode: y = yank without moving cursor
+vim.keymap.set({ 'v', 'x' }, 'y', 'ygv<Esc>', { noremap = true, silent = true, desc = 'Yank without moving cursor' })
+
 -- save file
 
 -- save file without auto-formatting

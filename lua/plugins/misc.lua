@@ -54,8 +54,8 @@ return {
       local keymap = vim.keymap
       
       -- Custom mapping using the new helper functions
-      keymap.set({'n', 'v', 'x'}, '<C-u>', function() neoscroll.ctrl_u({ duration = 100 }) end)
-      keymap.set({'n', 'v', 'x'}, '<C-d>', function() neoscroll.ctrl_d({ duration = 100 }) end)
+      keymap.set({'n', 'v', 'x'}, '<C-u>', function() neoscroll.ctrl_u({ duration = 80 }) end)
+      keymap.set({'n', 'v', 'x'}, '<C-d>', function() neoscroll.ctrl_d({ duration = 80 }) end)
     end,
   },
 }
