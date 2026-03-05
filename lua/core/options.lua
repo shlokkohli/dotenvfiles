@@ -42,6 +42,8 @@ vim.opt.iskeyword:append '-' -- Hyphenated words recognized by searches (default
 vim.opt.formatoptions:remove { 'c', 'r', 'o' } -- Don't insert the current comment leader automatically for auto-wrapping comments using 'textwidth', hitting <Enter> in insert mode, or hitting 'o' or 'O' in normal mode. (default: 'croql')
 vim.opt.runtimepath:remove '/usr/share/vim/vimfiles' -- Separate Vim plugins from Neovim in case Vim still in use (default: includes this path if Vim is installed)
 vim.opt.linespace = 8
+vim.o.title = true -- Set the terminal title (default: false)
+vim.o.titlestring = '%{fnamemodify(getcwd(), ":t")}' -- Show only the folder name
 
 -- Friendly quit commands: show clear messages instead of cryptic E37/E162
 vim.api.nvim_create_user_command('Q', function(opts)
@@ -124,31 +126,5 @@ vim.filetype.add {
   },
 }
 
--- Smart JSX detection: auto-detect JSX in .js/.ts files (e.g. Vite projects)
--- Scans the first 50 lines for JSX patterns and switches filetype accordingly
-vim.api.nvim_create_autocmd({ 'BufRead', 'BufNewFile' }, {
-  group = vim.api.nvim_create_augroup('jsx-detect', { clear = true }),
-  pattern = { '*.js', '*.ts' },
-  callback = function(ev)
-    local lines = vim.api.nvim_buf_get_lines(ev.buf, 0, 50, false)
-    local content = table.concat(lines, '\n')
-
-    -- Check for JSX patterns
-    local has_jsx = content:match('<%u')           -- <Component (uppercase = component)
-      or content:match('return%s*%(?\n?%s*<')       -- return ( <div> or return <div>
-      or content:match('<%w[%w%-]*[%s/>]')          -- <div>, <span />, <my-comp>
-      or content:match('/>')                         -- self-closing tags
-      or content:match("from%s+['\"]react['\"]")    -- import from 'react'
-      or content:match('React%.createElement')       -- React.createElement
-      or content:match('jsx')                        -- @jsx pragma or jsxImportSource
-
-    if has_jsx then
-      local ext = vim.fn.expand('%:e')
-      if ext == 'js' then
-        vim.bo[ev.buf].filetype = 'javascriptreact'
-      elseif ext == 'ts' then
-        vim.bo[ev.buf].filetype = 'typescriptreact'
-      end
-    end
-  end,
-})
+-- .js and .ts files are always treated as plain JavaScript/TypeScript.
+-- Use .jsx / .tsx extensions for React files.
