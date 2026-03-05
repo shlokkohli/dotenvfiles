@@ -44,7 +44,7 @@ return {
         live_grep = {
           file_ignore_patterns = { 'node_modules', '%.git', '%.venv', 'package%-lock%.json$' },
           additional_args = function(_)
-            return { '--hidden', '--fixed-strings' }
+            return { '--hidden' }
           end,
         },
       },
