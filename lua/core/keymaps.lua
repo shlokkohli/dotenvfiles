@@ -61,6 +61,10 @@ vim.keymap.set('n', 'N', 'Nzzzv', opts)
 -- Go to middle of text line
 vim.keymap.set({ 'n', 'x' }, 'gm', 'gM', { desc = 'Go to middle of text line', noremap = true })
 
+-- Swap zero and caret (0 goes to first word, ^ goes to column 0)
+vim.keymap.set({ 'n', 'v', 'o' }, '0', '^', { desc = 'Go to first non-blank character', noremap = true })
+vim.keymap.set({ 'n', 'v', 'o' }, '^', '0', { desc = 'Go to absolute start of line', noremap = true })
+
 -- Resize with arrows
 vim.keymap.set('n', '<Up>', ':resize -2<CR>', opts)
 vim.keymap.set('n', '<Down>', ':resize +2<CR>', opts)
