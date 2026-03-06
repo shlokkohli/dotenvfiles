@@ -35,6 +35,28 @@ return {
         map('n', '<leader>hr', gs.reset_hunk, { desc = 'Revert (reset) this git change' })
       end,
     },
+    config = function(_, opts)
+      require('gitsigns').setup(opts)
+
+      -- Define a function to set dimmer/lighter shades for staged changes
+      local function set_staged_hls()
+        -- You can tweak these hex colors to be as light or dim as you prefer
+        vim.api.nvim_set_hl(0, 'GitSignsStagedAdd', { fg = '#4a6a4a' })           -- Dimmed green
+        vim.api.nvim_set_hl(0, 'GitSignsStagedChange', { fg = '#3a5a7a' })        -- Dimmed blue
+        vim.api.nvim_set_hl(0, 'GitSignsStagedDelete', { fg = '#7a3a3a' })        -- Dimmed red
+        vim.api.nvim_set_hl(0, 'GitSignsStagedTopdelete', { fg = '#7a3a3a' })
+        vim.api.nvim_set_hl(0, 'GitSignsStagedChangedelete', { fg = '#7a3a3a' })
+      end
+
+      -- Apply immediately
+      set_staged_hls()
+
+      -- Ensure the colors persist even if the colorscheme is changed/reloaded
+      vim.api.nvim_create_autocmd('ColorScheme', {
+        pattern = '*',
+        callback = set_staged_hls,
+      })
+    end,
   },
 
   -- Merge conflict resolver

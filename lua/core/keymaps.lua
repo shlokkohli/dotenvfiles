@@ -58,6 +58,9 @@ vim.keymap.set('n', '<C-u>', '<C-u>zz', opts)
 vim.keymap.set('n', 'n', 'nzzzv', opts)
 vim.keymap.set('n', 'N', 'Nzzzv', opts)
 
+-- Go to middle of text line
+vim.keymap.set({ 'n', 'x' }, 'gm', 'gM', { desc = 'Go to middle of text line', noremap = true })
+
 -- Resize with arrows
 vim.keymap.set('n', '<Up>', ':resize -2<CR>', opts)
 vim.keymap.set('n', '<Down>', ':resize +2<CR>', opts)
@@ -87,8 +90,21 @@ vim.keymap.set('n', '<leader>to', ':tabnew<CR>', opts) -- open new tab
 vim.keymap.set('n', '<leader>tx', ':tabclose<CR>', opts) -- close current tab
 vim.keymap.set('n', '<leader>tn', ':tabn<CR>', opts) --  go to next tab
 vim.keymap.set('n', '<leader>tp', ':tabp<CR>', opts) --  go to previous tab
-vim.keymap.set('n', '<C-Tab>', ':tabn<CR>', opts) --  go to next tab
-vim.keymap.set('n', '<C-S-Tab>', ':tabp<CR>', opts) --  go to previous tab
+vim.keymap.set('n', '<C-Tab>', '<Cmd>BufferNext<CR>', opts)
+vim.keymap.set('n', '<C-S-Tab>', '<Cmd>BufferPrevious<CR>', opts)
+-- Ghostty sends these kitty protocol sequences for Ctrl+Tab / Ctrl+Shift+Tab
+vim.keymap.set('n', '\x1b[9;5u', '<Cmd>BufferNext<CR>', opts)
+vim.keymap.set('n', '\x1b[9;6u', '<Cmd>BufferPrevious<CR>', opts)
+-- Ghostty Ctrl+1-9 → BufferGoto (kitty protocol: ASCII code of digit + ;5u)
+vim.keymap.set('n', '\x1b[49;5u', '<Cmd>BufferGoto 1<CR>', opts)
+vim.keymap.set('n', '\x1b[50;5u', '<Cmd>BufferGoto 2<CR>', opts)
+vim.keymap.set('n', '\x1b[51;5u', '<Cmd>BufferGoto 3<CR>', opts)
+vim.keymap.set('n', '\x1b[52;5u', '<Cmd>BufferGoto 4<CR>', opts)
+vim.keymap.set('n', '\x1b[53;5u', '<Cmd>BufferGoto 5<CR>', opts)
+vim.keymap.set('n', '\x1b[54;5u', '<Cmd>BufferGoto 6<CR>', opts)
+vim.keymap.set('n', '\x1b[55;5u', '<Cmd>BufferGoto 7<CR>', opts)
+vim.keymap.set('n', '\x1b[56;5u', '<Cmd>BufferGoto 8<CR>', opts)
+vim.keymap.set('n', '\x1b[57;5u', '<Cmd>BufferGoto 9<CR>', opts)
 
 -- Toggle line wrapping
 vim.keymap.set('n', '<leader>lw', '<cmd>set wrap!<CR>', opts)
@@ -150,15 +166,15 @@ vim.keymap.set('n', '<A-,>', '<Cmd>BufferPrevious<CR>', { silent = true })
 vim.keymap.set('n', '<A-.>', '<Cmd>BufferNext<CR>', { silent = true })
 vim.keymap.set('n', '<A-<>', '<Cmd>BufferMovePrevious<CR>', { silent = true })
 vim.keymap.set('n', '<A->>', '<Cmd>BufferMoveNext<CR>', { silent = true })
-vim.keymap.set('n', '<A-1>', '<Cmd>BufferGoto 1<CR>', { silent = true })
-vim.keymap.set('n', '<A-2>', '<Cmd>BufferGoto 2<CR>', { silent = true })
-vim.keymap.set('n', '<A-3>', '<Cmd>BufferGoto 3<CR>', { silent = true })
-vim.keymap.set('n', '<A-4>', '<Cmd>BufferGoto 4<CR>', { silent = true })
-vim.keymap.set('n', '<A-5>', '<Cmd>BufferGoto 5<CR>', { silent = true })
-vim.keymap.set('n', '<A-6>', '<Cmd>BufferGoto 6<CR>', { silent = true })
-vim.keymap.set('n', '<A-7>', '<Cmd>BufferGoto 7<CR>', { silent = true })
-vim.keymap.set('n', '<A-8>', '<Cmd>BufferGoto 8<CR>', { silent = true })
-vim.keymap.set('n', '<A-9>', '<Cmd>BufferGoto 9<CR>', { silent = true })
+vim.keymap.set('n', '<C-1>', '<Cmd>BufferGoto 1<CR>', { silent = true })
+vim.keymap.set('n', '<C-2>', '<Cmd>BufferGoto 2<CR>', { silent = true })
+vim.keymap.set('n', '<C-3>', '<Cmd>BufferGoto 3<CR>', { silent = true })
+vim.keymap.set('n', '<C-4>', '<Cmd>BufferGoto 4<CR>', { silent = true })
+vim.keymap.set('n', '<C-5>', '<Cmd>BufferGoto 5<CR>', { silent = true })
+vim.keymap.set('n', '<C-6>', '<Cmd>BufferGoto 6<CR>', { silent = true })
+vim.keymap.set('n', '<C-7>', '<Cmd>BufferGoto 7<CR>', { silent = true })
+vim.keymap.set('n', '<C-8>', '<Cmd>BufferGoto 8<CR>', { silent = true })
+vim.keymap.set('n', '<C-9>', '<Cmd>BufferGoto 9<CR>', { silent = true })
 vim.keymap.set('n', '<A-0>', '<Cmd>BufferLast<CR>', { silent = true })
 vim.keymap.set('n', '<A-c>', '<Cmd>BufferClose<CR>', { silent = true })
 vim.keymap.set('n', '<leader>u', '<Cmd>BufferRestore<CR>', { silent = true })
