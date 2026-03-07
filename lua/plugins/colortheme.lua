@@ -126,6 +126,13 @@ return {
       hi(0, '@lsp.type.number',            { fg = '#d19a66' })
       hi(0, '@lsp.type.namespace',         { fg = '#e5c07b' })
       hi(0, '@lsp.type.enumMember',        { fg = '#56b6c2' })
+
+      -- ── Selection & References (More noticeable) ────────────────────
+      -- Provide a stronger background color for visual selection and identical words
+      hi(0, 'Visual',                      { bg = '#3e4451' })
+      hi(0, 'LspReferenceText',            { bg = '#3e4451' })
+      hi(0, 'LspReferenceRead',            { bg = '#3e4451' })
+      hi(0, 'LspReferenceWrite',           { bg = '#3e4451', underline = true })
     end,
   },
 }
