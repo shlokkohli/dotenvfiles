@@ -197,7 +197,6 @@ return {
           hide_by_name = {
             '.DS_Store',
             'thumbs.db',
-            'node_modules',
             '__pycache__',
             '.virtual_documents',
             '.git',

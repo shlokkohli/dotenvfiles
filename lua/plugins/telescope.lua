@@ -37,9 +37,13 @@ return {
       },
       pickers = {
         find_files = {
-          file_ignore_patterns = { 'node_modules', '%.git', '%.venv', 'package%-lock%.json$' },
-          hidden = true,
-          no_ignore = true
+          find_command = {
+            'fd', '--type', 'f', '--hidden', '--no-ignore',
+            '--exclude', 'node_modules',
+            '--exclude', '.git',
+            '--exclude', '.venv',
+            '--exclude', 'package-lock.json',
+          },
         },
         live_grep = {
           file_ignore_patterns = { 'node_modules', '%.git', '%.venv', 'package%-lock%.json$' },
