@@ -41,5 +41,6 @@ require('lazy').setup {
   require 'plugins.comment',
   require 'plugins.tailwind',
   require 'plugins.tailwind-tools',
-  require 'plugins.scrollbar'
+  require 'plugins.scrollbar',
+  require 'plugins.toggleterm'
 }

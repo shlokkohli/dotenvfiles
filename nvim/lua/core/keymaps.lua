@@ -85,7 +85,8 @@ vim.keymap.set('n', '<leader>xs', '<cmd>close<CR>', opts) -- close current split
 
 -- Navigate between splits
 vim.keymap.set('n', '<C-k>', ':wincmd k<CR>', opts)
-vim.keymap.set('n', '<C-j>', ':wincmd j<CR>', opts)
+-- C-j reserved for toggleterm; use vim-tmux-navigator or :wincmd j manually
+-- vim.keymap.set('n', '<C-j>', ':wincmd j<CR>', opts)
 vim.keymap.set('n', '<C-h>', ':wincmd h<CR>', opts)
 vim.keymap.set('n', '<C-l>', ':wincmd l<CR>', opts)
 
