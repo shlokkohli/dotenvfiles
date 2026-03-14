@@ -3,9 +3,17 @@ local opts = { noremap = true, silent = true }
 vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
 
--- TOM SOLUTION TO SKIP WORDS USING OPTION + arrows
+-- Insert mode: Option+B = move back 1 word, Option+W = move forward 1 word
 vim.keymap.set('i', '<M-b>', '<C-o>b', opts)
-vim.keymap.set('i', '<M-f>', '<C-o>w', opts)
+vim.keymap.set('i', '<M-w>', '<C-o>w', opts)
+vim.keymap.set('i', '∫', '<C-o>b', opts) -- macOS Option+B
+vim.keymap.set('i', '∑', '<C-o>w', opts) -- macOS Option+W
+
+-- Insert mode: Option+J = move down 1 line, Option+K = move up 1 line
+vim.keymap.set('i', '<M-j>', '<C-o>j', opts)
+vim.keymap.set('i', '<M-k>', '<C-o>k', opts)
+vim.keymap.set('i', '∆', '<C-o>j', opts) -- macOS Option+J
+vim.keymap.set('i', '˚', '<C-o>k', opts) -- macOS Option+K
 
 -- normal mode
 vim.keymap.set('n', '<A-Up>', ':m .-2<CR>==', { silent = true })
