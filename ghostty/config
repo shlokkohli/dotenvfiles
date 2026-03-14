@@ -2,3 +2,5 @@ keybind = ctrl+tab=text:\x1b[27;5;9~
 keybind = ctrl+shift+tab=text:\x1b[27;6;9~
 font-size = 14
 keybind = ctrl+j=unbind
+keybind = ctrl+backspace=text:\x17
+keybind = alt+backspace=text:\x17
