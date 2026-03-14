@@ -135,6 +135,10 @@ vim.keymap.set('n', ']d', vim.diagnostic.goto_next, { desc = 'Go to next diagnos
 vim.keymap.set('n', '<leader>d', vim.diagnostic.open_float, { desc = 'Open floating diagnostic message' })
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostics list' })
 
+-- Select inner line (excluding indentation)
+vim.keymap.set('x', 'il', ':<C-u>normal! ^vg_<CR>', { desc = 'Select inner line' })
+vim.keymap.set('o', 'il', ':normal! ^vg_<CR>', { desc = 'Select inner line' })
+
 vim.keymap.set('n', '<A-l>', '5zl', { silent = true })
 vim.keymap.set('n', '<A-h>', '5zh', { silent = true })
 -- Many macOS terminals send Meta instead of Alt
