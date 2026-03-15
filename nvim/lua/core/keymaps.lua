@@ -12,20 +12,30 @@ vim.keymap.set('i', '∑', '<C-o>w', opts) -- macOS Option+W
 -- Insert mode: Option+J = move down 1 line, Option+K = move up 1 line
 vim.keymap.set('i', '<M-j>', '<C-o>j', opts)
 vim.keymap.set('i', '<M-k>', '<C-o>k', opts)
-vim.keymap.set('i', '∆', '<C-o>j', opts) -- macOS Option+J
-vim.keymap.set('i', '˚', '<C-o>k', opts) -- macOS Option+K
+vim.keymap.set('i', '∆', '<Esc>:m .+1<CR>==gi', { silent = true }) -- macOS Option+J (move line down)
+vim.keymap.set('i', '˚', '<Esc>:m .-2<CR>==gi', { silent = true }) -- macOS Option+K (move line up)
 
 -- normal mode
 vim.keymap.set('n', '<A-Up>', ':m .-2<CR>==', { silent = true })
 vim.keymap.set('n', '<A-Down>', ':m .+1<CR>==', { silent = true })
+vim.keymap.set('n', '<A-k>', ':m .-2<CR>==', { silent = true })
+vim.keymap.set('n', '<A-j>', ':m .+1<CR>==', { silent = true })
+vim.keymap.set('n', '˚', ':m .-2<CR>==', { silent = true }) -- macOS Option+K
+vim.keymap.set('n', '∆', ':m .+1<CR>==', { silent = true }) -- macOS Option+J
 
 -- visual mode
 vim.keymap.set('v', '<A-Up>', ":m '<-2<CR>gv=gv", { silent = true })
 vim.keymap.set('v', '<A-Down>', ":m '>+1<CR>gv=gv", { silent = true })
+vim.keymap.set('v', '<A-k>', ":m '<-2<CR>gv=gv", { silent = true })
+vim.keymap.set('v', '<A-j>', ":m '>+1<CR>gv=gv", { silent = true })
+vim.keymap.set('v', '˚', ":m '<-2<CR>gv=gv", { silent = true }) -- macOS Option+K
+vim.keymap.set('v', '∆', ":m '>+1<CR>gv=gv", { silent = true }) -- macOS Option+J
 
 -- insert mode
 vim.keymap.set('i', '<A-Up>', '<Esc>:m .-2<CR>==gi', { silent = true })
 vim.keymap.set('i', '<A-Down>', '<Esc>:m .+1<CR>==gi', { silent = true })
+vim.keymap.set('i', '<A-k>', '<Esc>:m .-2<CR>==gi', { silent = true })
+vim.keymap.set('i', '<A-j>', '<Esc>:m .+1<CR>==gi', { silent = true })
 
 -- Switch to insert mode
 vim.keymap.set('i', 'jk', '<Esc>', { noremap = true, silent = true })
