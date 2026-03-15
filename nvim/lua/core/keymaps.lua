@@ -161,6 +161,9 @@ vim.keymap.set('n', '˙', '5zh', { silent = true }) -- Option+H
 -- option backspace to remove word in insert mode
 vim.keymap.set('i', '<M-BS>', '<C-G>u<C-W>', { noremap = true })
 
+-- Insert mode: csl instantly expands to console.log()
+vim.keymap.set('i', 'csl', 'console.log', { noremap = true })
+
 -- set toggle word wrap
 vim.keymap.set('n', '<A-z>', ':set wrap!<CR>', { noremap = true, silent = true })
 
