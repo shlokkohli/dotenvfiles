@@ -105,12 +105,34 @@ return {
         neogit.open { kind = 'tab' }
       end, { desc = 'Open Neogit (tab)' })
 
+      -- Track buffers open before entering Diffview
+      local pre_diffview_bufs = {}
+
       -- show whitespace changes also
       vim.keymap.set('n', '<leader>gd', function()
+        -- Snapshot current buffer list before opening Diffview
+        pre_diffview_bufs = {}
+        for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+          if vim.api.nvim_buf_is_loaded(buf) and vim.bo[buf].buflisted then
+            pre_diffview_bufs[buf] = true
+          end
+        end
         vim.cmd('DiffviewOpen --no-ignore-whitespace')
       end, { desc = 'Open Diffview (show all changes)' })
 
-      vim.keymap.set('n', '<leader>gD', '<cmd>DiffviewClose<CR>', { desc = 'Close Diffview' })
+      vim.keymap.set('n', '<leader>gD', function()
+        vim.cmd('DiffviewClose')
+        -- Close any buffers that were opened during the Diffview session
+        for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+          if vim.api.nvim_buf_is_loaded(buf)
+            and vim.bo[buf].buflisted
+            and not pre_diffview_bufs[buf]
+          then
+            vim.cmd('bwipeout! ' .. buf)
+          end
+        end
+        pre_diffview_bufs = {}
+      end, { desc = 'Close Diffview and clean up diff buffers' })
     end,
   },
 
