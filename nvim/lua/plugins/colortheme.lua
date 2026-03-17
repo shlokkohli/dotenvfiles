@@ -133,6 +133,9 @@ return {
       hi(0, 'LspReferenceText',            { bg = '#3e4451' })
       hi(0, 'LspReferenceRead',            { bg = '#3e4451' })
       hi(0, 'LspReferenceWrite',           { bg = '#3e4451', underline = true })
+
+      -- ── Cursor line ──────────────────────────────────────────────────
+      hi(0, 'CursorLineNr',                { fg = '#e5c07b', bold = true }) -- bright yellow highlight for current line number
     end,
   },
 }

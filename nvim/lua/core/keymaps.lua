@@ -24,12 +24,20 @@ vim.keymap.set('n', '˚', ':m .-2<CR>==', { silent = true }) -- macOS Option+K
 vim.keymap.set('n', '∆', ':m .+1<CR>==', { silent = true }) -- macOS Option+J
 
 -- visual mode
-vim.keymap.set('v', '<A-Up>', ":m '<-2<CR>gv=gv", { silent = true })
-vim.keymap.set('v', '<A-Down>', ":m '>+1<CR>gv=gv", { silent = true })
-vim.keymap.set('v', '<A-k>', ":m '<-2<CR>gv=gv", { silent = true })
-vim.keymap.set('v', '<A-j>', ":m '>+1<CR>gv=gv", { silent = true })
-vim.keymap.set('v', '˚', ":m '<-2<CR>gv=gv", { silent = true }) -- macOS Option+K
-vim.keymap.set('v', '∆', ":m '>+1<CR>gv=gv", { silent = true }) -- macOS Option+J
+local function visual_move_up()
+  vim.cmd("'<,'>move '<-2")
+  vim.cmd('normal! gv=gv')
+end
+local function visual_move_down()
+  vim.cmd("'<,'>move '>+1")
+  vim.cmd('normal! gv=gv')
+end
+vim.keymap.set('v', '<A-Up>', visual_move_up, { silent = true })
+vim.keymap.set('v', '<A-Down>', visual_move_down, { silent = true })
+vim.keymap.set('v', '<A-k>', visual_move_up, { silent = true })
+vim.keymap.set('v', '<A-j>', visual_move_down, { silent = true })
+vim.keymap.set('v', '˚', visual_move_up, { silent = true })  -- macOS Option+K
+vim.keymap.set('v', '∆', visual_move_down, { silent = true }) -- macOS Option+J
 
 -- insert mode
 vim.keymap.set('i', '<A-Up>', '<Esc>:m .-2<CR>==gi', { silent = true })
