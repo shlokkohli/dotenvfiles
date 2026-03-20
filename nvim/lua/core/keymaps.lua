@@ -243,3 +243,56 @@ vim.api.nvim_create_autocmd("BufDelete", {
     end)
   end,
 })
+
+-- Smart vab: select around the nearest enclosing bracket pair (), [], or {}
+local function smart_around_bracket()
+  local brackets = { { '(', ')' }, { '[', ']' }, { '{', '}' } }
+  local best = nil
+
+  -- Save cursor position
+  local save_cursor = vim.fn.getpos('.')
+
+  for _, pair in ipairs(brackets) do
+    -- Restore cursor before each search
+    vim.fn.setpos('.', save_cursor)
+
+    -- Search backward for the opening bracket of this type
+    -- searchpairpos searches for a matching pair, skipping nested pairs
+    local row, col = unpack(vim.fn.searchpairpos(
+      '\\V' .. pair[1], '', '\\V' .. pair[2], 'bnW'
+    ))
+
+    if row ~= 0 then
+      -- Found an enclosing bracket of this type
+      -- The closer the opening bracket is to the cursor, the more "inner" it is
+      local cursor_row = save_cursor[2]
+      local cursor_col = save_cursor[3]
+
+      -- Calculate distance (row distance is weighted heavily)
+      local dist = (cursor_row - row) * 10000 + (cursor_col - col)
+
+      if best == nil or dist < best.dist then
+        best = { dist = dist, open = pair[1] }
+      end
+    end
+  end
+
+  -- Restore cursor position
+  vim.fn.setpos('.', save_cursor)
+
+  if best then
+    local char = best.open
+    -- Use the appropriate va( / va[ / va{ command
+    if char == '(' then
+      vim.cmd('normal! va(')
+    elseif char == '[' then
+      vim.cmd('normal! va[')
+    elseif char == '{' then
+      vim.cmd('normal! va{')
+    end
+  end
+end
+
+vim.keymap.set('n', 'vab', smart_around_bracket, { desc = 'Select around nearest bracket', silent = true })
+vim.keymap.set('x', 'ab', smart_around_bracket, { desc = 'Expand selection to around nearest bracket', silent = true })
+vim.keymap.set('o', 'ab', smart_around_bracket, { desc = 'Around nearest bracket (operator pending)', silent = true })
