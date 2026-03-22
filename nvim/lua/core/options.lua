@@ -129,3 +129,17 @@ vim.filetype.add {
 
 -- .js and .ts files are always treated as plain JavaScript/TypeScript.
 -- Use .jsx / .tsx extensions for React files.
+
+-- Open image files with the system viewer instead of displaying binary garbage
+vim.api.nvim_create_autocmd('BufReadCmd', {
+  pattern = { '*.png', '*.jpg', '*.jpeg', '*.gif', '*.bmp', '*.webp', '*.svg', '*.ico' },
+  callback = function(ev)
+    vim.fn.jobstart({ 'open', ev.file }, { detach = true })
+    -- Delete the empty buffer that was created
+    vim.schedule(function()
+      if vim.api.nvim_buf_is_valid(ev.buf) then
+        vim.api.nvim_buf_delete(ev.buf, { force = true })
+      end
+    end)
+  end,
+})
