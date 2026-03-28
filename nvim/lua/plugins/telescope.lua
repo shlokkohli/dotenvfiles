@@ -42,11 +42,13 @@ return {
             '--exclude', 'node_modules',
             '--exclude', '.git',
             '--exclude', '.venv',
+            '--exclude', '.turbo',
+            '--exclude', '.husky',
             '--exclude', 'package-lock.json',
           },
         },
         live_grep = {
-          file_ignore_patterns = { 'node_modules', '%.git', '%.venv', 'package%-lock%.json$' },
+          file_ignore_patterns = { 'node_modules', '%.git', '%.venv', '%.turbo', '%.husky', 'package%-lock%.json$' },
           additional_args = function(_)
             return { '--hidden' }
           end,

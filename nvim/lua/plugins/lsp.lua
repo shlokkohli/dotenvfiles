@@ -62,7 +62,27 @@ return {
         -- Jump to the definition of the word under your cursor.
         --  This is where a variable was first declared, or where a function is defined, etc.
         --  To jump back, press <C-t>.
-        map('gd', require('telescope.builtin').lsp_definitions, '[G]oto [D]efinition')
+        --  For TypeScript in monorepos, use "Go to Source Definition" first to
+        --  follow through re-exports and declaration maps to the real .ts source.
+        local client = vim.lsp.get_client_by_id(event.data.client_id)
+        if client and client.name == 'ts_ls' then
+          map('gd', function()
+            local params = vim.lsp.util.make_position_params(0, client.offset_encoding)
+            client.request('workspace/executeCommand', {
+              command = '_typescript.goToSourceDefinition',
+              arguments = { params.textDocument.uri, params.position },
+            }, function(err, result)
+              if result and #result > 0 then
+                vim.lsp.util.show_document(result[1], client.offset_encoding, { focus = true })
+              else
+                -- Fallback to standard LSP definition via Telescope
+                require('telescope.builtin').lsp_definitions()
+              end
+            end, event.buf)
+          end, '[G]oto [D]efinition')
+        else
+          map('gd', require('telescope.builtin').lsp_definitions, '[G]oto [D]efinition')
+        end
 
         -- Find references for the word under your cursor.
         map('gr', require('telescope.builtin').lsp_references, '[G]oto [R]eferences')
@@ -95,6 +115,35 @@ return {
         -- WARN: This is not Goto Definition, this is Goto Declaration.
         --  For example, in C this would take you to the header.
         map('gD', vim.lsp.buf.declaration, '[G]oto [D]eclaration')
+
+        -- Show the diagnostic under the cursor first, otherwise fall back to LSP hover.
+        map('K', function()
+          local preview = vim.b[event.buf].lsp_floating_preview
+          if preview and vim.api.nvim_win_is_valid(preview) then
+            vim.api.nvim_win_close(preview, true)
+            vim.b[event.buf].lsp_floating_preview = nil
+            return
+          end
+
+          local line = vim.api.nvim_win_get_cursor(0)[1] - 1
+          local diagnostics = vim.diagnostic.get(event.buf, { lnum = line })
+
+          if #diagnostics > 0 then
+            vim.diagnostic.open_float(0, {
+              scope = 'cursor',
+              focus = false,
+              focusable = false,
+            })
+            return
+          end
+
+          vim.lsp.buf.hover {
+            focus = false,
+            focusable = false,
+            border = 'rounded',
+            max_width = 80,
+          }
+        end, 'Hover / Line Diagnostic')
 
         -- The following two autocommands are used to highlight references of the
         -- word under your cursor when your cursor rests there for a little while.
@@ -169,6 +218,14 @@ return {
       --
       -- But for many setups, the LSP (`tsserver`) will work just fine
       ts_ls = { -- tsserver
+        -- In monorepos, anchor ts_ls to the nearest tsconfig.json (sub-package)
+        -- so it uses the correct project scope for type resolution.
+        root_dir = function(fname)
+          local util = require('lspconfig.util')
+          -- Prefer nearest tsconfig.json (sub-package), then package.json, then .git
+          return util.root_pattern('tsconfig.json')(fname)
+            or util.root_pattern('package.json', '.git')(fname)
+        end,
         -- ts_ls config to ensure ts_ls sever does not format code
         capabilities = {
           documentFormattingProvider = false,
@@ -221,6 +278,7 @@ return {
       terraformls = {},
       jsonls = {},
       yamlls = {},
+      prismals = {},
       emmet_ls = {
         filetypes = { 'html', 'css', 'less', 'sass', 'scss' },
       },
@@ -281,9 +339,11 @@ return {
     }
 
     vim.diagnostic.config {
-      virtual_text = {
-        spacing = 1,
-      },
+      virtual_text = false,
+      virtual_lines = false,
+      underline = true,
+      update_in_insert = true,
+      severity_sort = true,
       float = {
         focusable = true,
         border = 'rounded',
@@ -295,6 +355,10 @@ return {
 
     -- Fade unused variables/functions like VS Code does
     vim.api.nvim_set_hl(0, 'DiagnosticUnnecessary', { fg = '#6b7280', italic = true })
+    vim.api.nvim_set_hl(0, 'DiagnosticUnderlineError', { undercurl = true, sp = '#e06c75' })
+    vim.api.nvim_set_hl(0, 'DiagnosticUnderlineWarn', { undercurl = true, sp = '#e5c07b' })
+    vim.api.nvim_set_hl(0, 'DiagnosticUnderlineInfo', { undercurl = true, sp = '#61afef' })
+    vim.api.nvim_set_hl(0, 'DiagnosticUnderlineHint', { undercurl = true, sp = '#56b6c2' })
 
     -- Override float to enforce wrapping and max_width
     local orig_util_open_float = vim.diagnostic.open_float

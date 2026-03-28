@@ -18,7 +18,17 @@ return {
   config = function(_, opts)
     require('toggleterm').setup(opts)
     -- Explicit global keymap that can't be shadowed by buffer-local maps
-    vim.keymap.set({ 'n', 'i', 't' }, '<C-j>', '<cmd>ToggleTerm<CR>', {
+    vim.keymap.set({ 'n', 'i', 't' }, '<A-j>', '<cmd>ToggleTerm<CR>', {
+      noremap = true,
+      silent = true,
+      desc = 'Toggle terminal',
+    })
+    vim.keymap.set({ 'n', 'i', 't' }, '<M-j>', '<cmd>ToggleTerm<CR>', {
+      noremap = true,
+      silent = true,
+      desc = 'Toggle terminal',
+    })
+    vim.keymap.set({ 'n', 'i', 't' }, '∆', '<cmd>ToggleTerm<CR>', {
       noremap = true,
       silent = true,
       desc = 'Toggle terminal',

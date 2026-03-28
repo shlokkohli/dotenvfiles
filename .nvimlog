@@ -1,0 +1,3 @@
+WRN 2026-03-27T11:13:15.564 ?.78947    server_start:199: Failed to start server: operation not permitted: /var/folders/gl/6pd8bc1d2h90c59qxjz56mxr0000gn/T/nvim.shlok/2WBsNy/nvim.78947.0
+WRN 2026-03-27T11:14:28.695 ?.79936    server_start:199: Failed to start server: operation not permitted: /var/folders/gl/6pd8bc1d2h90c59qxjz56mxr0000gn/T/nvim.shlok/6BbqDA/nvim.79936.0
+WRN 2026-03-27T11:14:28.695 ?.79935    server_start:199: Failed to start server: operation not permitted: /var/folders/gl/6pd8bc1d2h90c59qxjz56mxr0000gn/T/nvim.shlok/lOU3xt/nvim.79935.0

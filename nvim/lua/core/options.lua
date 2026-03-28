@@ -119,6 +119,9 @@ vim.api.nvim_create_autocmd({ 'TextChanged', 'TextChangedI' }, {
 
 -- Treat .env files as shell scripts for proper syntax highlighting
 vim.filetype.add {
+  extension = {
+    prisma = 'prisma',
+  },
   filename = {
     ['.env'] = 'sh',
   },

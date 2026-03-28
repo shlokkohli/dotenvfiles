@@ -31,6 +31,7 @@ return { -- Highlight, edit, and navigate code
       'tsx',
       'css',
       'html',
+      'prisma',
     },
     -- Autoinstall languages that are not installed
     auto_install = true,
