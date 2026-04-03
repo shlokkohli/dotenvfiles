@@ -23,6 +23,9 @@ vim.keymap.set('n', '<A-k>', ':m .-2<CR>==', { silent = true })
 vim.keymap.set('n', '˚', ':m .-2<CR>==', { silent = true }) -- macOS Option+K
 -- vim.keymap.set('n', '∆', ':m .+1<CR>==', { silent = true }) -- macOS Option+J
 
+
+vim.keymap.set('n', '<leader>n', ':enew<CR>', { noremap = true, silent = true })
+
 -- visual mode
 local function visual_move_up()
   vim.cmd("'<,'>move '<-2")

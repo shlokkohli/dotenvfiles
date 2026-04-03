@@ -1,141 +1,95 @@
 return {
   {
-    'EdenEast/nightfox.nvim',
+    'catppuccin/nvim',
+    name = 'catppuccin',
     priority = 1000,
     config = function()
-      require('nightfox').setup {}
-      vim.cmd.colorscheme 'carbonfox'
+      require('catppuccin').setup {
+        flavour = 'macchiato', -- latte, frappe, macchiato, mocha
+        background = {
+          light = 'latte',
+          dark = 'macchiato',
+        },
+        transparent_background = true, -- keep your glass/blur effect
+        show_end_of_buffer = false,
+        term_colors = false,
+        dim_inactive = {
+          enabled = false,
+        },
+        styles = {
+          comments = { 'italic' },
+          conditionals = { 'italic' },
+          functions = {},
+          keywords = {},
+          strings = {},
+          variables = {},
+          numbers = {},
+          booleans = {},
+          properties = {},
+          types = {},
+          operators = {},
+        },
+        integrations = {
+          cmp = true,
+          gitsigns = true,
+          nvimtree = true,
+          treesitter = true,
+          telescope = {
+            enabled = true,
+          },
+          barbar = true,
+          indent_blankline = {
+            enabled = true,
+            scope_color = '',
+            colored_indent_levels = false,
+          },
+          native_lsp = {
+            enabled = true,
+            virtual_text = {
+              errors = { 'italic' },
+              hints = { 'italic' },
+              warnings = { 'italic' },
+              information = { 'italic' },
+            },
+            underlines = {
+              errors = { 'underline' },
+              hints = { 'underline' },
+              warnings = { 'underline' },
+              information = { 'underline' },
+            },
+            inlay_hints = {
+              background = true,
+            },
+          },
+          which_key = false,
+          lualine = true,
+          neotree = true,
+          alpha = true,
+          scrollbar = true,
+        },
+        -- Make Telescope transparent so it matches the rest of the editor.
+        -- Without this, Telescope floats get explicit bg colors from the
+        -- integration and appear as a darker opaque box against your glass effect.
+        highlight_overrides = {
+          all = function(colors)
+            return {
+              TelescopeNormal          = { bg = 'NONE' },
+              TelescopePreviewNormal   = { bg = 'NONE' },
+              TelescopePromptNormal    = { bg = 'NONE' },
+              TelescopeResultsNormal   = { bg = 'NONE' },
+              TelescopeBorder          = { bg = 'NONE', fg = colors.blue },
+              TelescopePreviewBorder   = { bg = 'NONE', fg = colors.blue },
+              TelescopePromptBorder    = { bg = 'NONE', fg = colors.blue },
+              TelescopeResultsBorder   = { bg = 'NONE', fg = colors.blue },
+              TelescopePromptPrefix    = { fg = colors.mauve },
+              TelescopeSelectionCaret  = { fg = colors.mauve },
+              TelescopeSelection       = { bg = colors.surface0, bold = true },
+            }
+          end,
+        },
+      }
 
-      -- ================================================================
-      -- One Dark Pro Night Flat — exact colors from the VS Code theme
-      -- Source: zhuangtongfa.material-theme / OneDark-Pro-night-flat.json
-      -- ================================================================
-      local hi = vim.api.nvim_set_hl
-
-      -- Palette reference:
-      --   purple  #c678dd  → keywords (const, let, if, return, async, await…)
-      --   blue    #61afef  → functions, methods
-      --   red     #e06c75  → variables, object keys, parameters
-      --   yellow  #e5c07b  → const-declared names, classes, types, modules
-      --   green   #98c379  → strings
-      --   orange  #d19a66  → numbers, template literals
-      --   cyan    #56b6c2  → operators, built-in support functions
-      --   white   #abb2bf  → plain text, punctuation, operators
-
-      -- ── Keywords ────────────────────────────────────────────────────
-      -- const, let, var, function, class, if, else, for, while,
-      -- return, import, export, async, await, throw, try, catch, typeof, new, delete…
-      hi(0, '@keyword',                    { fg = '#c678dd' })
-      hi(0, '@keyword.return',             { fg = '#c678dd' })
-      hi(0, '@keyword.conditional',        { fg = '#c678dd' })
-      hi(0, '@keyword.repeat',             { fg = '#c678dd' })
-      hi(0, '@keyword.import',             { fg = '#c678dd' })
-      hi(0, '@keyword.function',           { fg = '#c678dd' }) -- 'function' keyword
-      hi(0, '@keyword.operator',           { fg = '#c678dd' }) -- typeof, instanceof, in, of
-      hi(0, '@keyword.coroutine',          { fg = '#c678dd' }) -- async / await
-      hi(0, '@keyword.exception',          { fg = '#c678dd' }) -- throw, try, catch, finally
-      hi(0, 'Keyword',                     { fg = '#c678dd' }) -- fallback
-      hi(0, 'Statement',                   { fg = '#c678dd' }) -- fallback
-      hi(0, 'StorageClass',                { fg = '#c678dd' }) -- const, let, var
-
-      -- ── Vim built-in TypeScript/JavaScript syntax fallbacks ──────────
-      -- When Treesitter isn't active for TSX/JSX, Vim uses these groups
-      hi(0, 'typescriptVariable',          { fg = '#c678dd' }) -- const, let, var
-      hi(0, 'typescriptImport',            { fg = '#c678dd' }) -- import
-      hi(0, 'typescriptExport',            { fg = '#c678dd' }) -- export
-      hi(0, 'typescriptStatementKeyword',  { fg = '#c678dd' }) -- return, if, else, etc.
-      hi(0, 'typescriptOperator',          { fg = '#c678dd' }) -- typeof, instanceof
-      hi(0, 'typescriptBraces',            { fg = '#abb2bf' }) -- { }
-      hi(0, 'typescriptFuncKeyword',       { fg = '#c678dd' }) -- function
-      hi(0, 'typescriptIdentifierName',    { fg = '#e06c75' }) -- variable names
-      hi(0, 'typescriptCall',              { fg = '#e06c75' }) -- function call args
-      hi(0, 'typescriptFuncName',          { fg = '#61afef' }) -- function names
-      hi(0, 'typescriptArrowFunc',         { fg = '#c678dd' }) -- =>
-      hi(0, 'typescriptString',            { fg = '#98c379' }) -- strings
-      hi(0, 'typescriptTemplate',          { fg = '#98c379' }) -- template literals
-      hi(0, 'typescriptNumber',            { fg = '#d19a66' }) -- numbers
-      hi(0, 'typescriptBoolean',           { fg = '#d19a66' }) -- true/false
-      hi(0, 'typescriptNull',              { fg = '#d19a66' }) -- null/undefined
-
-      -- ── Functions & Methods ─────────────────────────────────────────
-      -- function names, method names, calls — blue in One Dark Pro
-      hi(0, '@function',                   { fg = '#61afef' })
-      hi(0, '@function.builtin',           { fg = '#56b6c2' }) -- built-ins like require()
-      hi(0, '@function.call',              { fg = '#61afef' })
-      hi(0, '@function.method',            { fg = '#61afef' })
-      hi(0, '@function.method.call',       { fg = '#61afef' })
-      hi(0, '@constructor',                { fg = '#e5c07b' }) -- new ClassName()
-      hi(0, 'Function',                    { fg = '#61afef' }) -- fallback
-
-      -- ── Variables ───────────────────────────────────────────────────
-      -- Regular variables and references are red/pink in One Dark Pro
-      hi(0, '@variable',                   { fg = '#e06c75' })
-      hi(0, '@variable.builtin',           { fg = '#e5c07b' }) -- this, self, arguments
-      hi(0, '@variable.parameter',         { fg = '#e06c75' }) -- function params (orange in some langs)
-      hi(0, '@variable.member',            { fg = '#e06c75' }) -- object.property access
-      hi(0, 'Identifier',                  { fg = '#e06c75' }) -- fallback
-
-      -- const-declared names get yellow-gold (variable.other.constant in VS Code)
-      hi(0, '@constant',                   { fg = '#e5c07b' }) -- const FOO = …
-      hi(0, '@constant.builtin',           { fg = '#56b6c2' }) -- true, false, null, undefined
-
-      -- ── Object keys & Properties ────────────────────────────────────
-      -- In One Dark Pro, object literal keys (meta.object-literal.key) are red/pink
-      hi(0, '@property',                   { fg = '#e06c75' }) -- obj.key access
-      -- Note: the colon separator is plain white (#abb2bf), handled by punctuation
-
-      -- ── Types & Classes ─────────────────────────────────────────────
-      hi(0, '@type',                       { fg = '#e5c07b' })
-      hi(0, '@type.builtin',               { fg = '#e5c07b' })
-      hi(0, '@namespace',                  { fg = '#e5c07b' })
-
-      -- ── Strings ─────────────────────────────────────────────────────
-      -- Green in One Dark Pro (not orange like VS Code default)
-      hi(0, '@string',                     { fg = '#98c379' })
-      hi(0, '@string.regex',               { fg = '#e06c75' })
-      hi(0, '@string.escape',              { fg = '#56b6c2' })
-      hi(0, 'String',                      { fg = '#98c379' }) -- fallback
-
-      -- ── Numbers ─────────────────────────────────────────────────────
-      hi(0, '@number',                     { fg = '#d19a66' })
-      hi(0, '@number.float',               { fg = '#d19a66' })
-      hi(0, '@boolean',                    { fg = '#d19a66' })
-
-      -- ── Comments ────────────────────────────────────────────────────
-      hi(0, '@comment',                    { fg = '#5c6370', italic = true })
-      hi(0, 'Comment',                     { fg = '#5c6370', italic = true })
-
-      -- ── Operators & Punctuation ─────────────────────────────────────
-      hi(0, '@operator',                   { fg = '#abb2bf' })
-      hi(0, '@punctuation.bracket',        { fg = '#abb2bf' })
-      hi(0, '@punctuation.delimiter',      { fg = '#abb2bf' })
-      hi(0, '@punctuation.special',        { fg = '#56b6c2' }) -- template literal ${}
-
-      -- ── LSP Semantic Tokens ─────────────────────────────────────────
-      -- These override treesitter when semantic highlighting is active
-      hi(0, '@lsp.type.variable',          { fg = '#e06c75' })
-      hi(0, '@lsp.type.parameter',         { fg = '#e06c75' })
-      hi(0, '@lsp.type.property',          { fg = '#e06c75' })
-      hi(0, '@lsp.type.function',          { fg = '#61afef' })
-      hi(0, '@lsp.type.method',            { fg = '#61afef' })
-      hi(0, '@lsp.type.class',             { fg = '#e5c07b' })
-      hi(0, '@lsp.type.interface',         { fg = '#e5c07b' })
-      hi(0, '@lsp.type.type',              { fg = '#e5c07b' })
-      hi(0, '@lsp.type.keyword',           { fg = '#c678dd' })
-      hi(0, '@lsp.type.string',            { fg = '#98c379' })
-      hi(0, '@lsp.type.number',            { fg = '#d19a66' })
-      hi(0, '@lsp.type.namespace',         { fg = '#e5c07b' })
-      hi(0, '@lsp.type.enumMember',        { fg = '#56b6c2' })
-
-      -- ── Selection & References (More noticeable) ────────────────────
-      -- Provide a stronger background color for visual selection and identical words
-      hi(0, 'Visual',                      { bg = '#3e4451' })
-      hi(0, 'LspReferenceText',            { bg = '#3e4451' })
-      hi(0, 'LspReferenceRead',            { bg = '#3e4451' })
-      hi(0, 'LspReferenceWrite',           { bg = '#3e4451', underline = true })
-
-      -- ── Cursor line ──────────────────────────────────────────────────
-      hi(0, 'CursorLineNr',                { fg = '#e5c07b', bold = true }) -- bright yellow highlight for current line number
+      vim.cmd.colorscheme 'catppuccin'
     end,
   },
 }

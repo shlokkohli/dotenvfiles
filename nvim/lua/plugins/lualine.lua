@@ -40,7 +40,7 @@ return {
     require('lualine').setup {
       options = {
         icons_enabled = true,
-        theme = 'nord', -- Set theme based on environment variable
+        theme = 'catppuccin', -- Synced with Catppuccin colorscheme
         -- Some useful glyphs:
         -- https://www.nerdfonts.com/cheat-sheet
         --        

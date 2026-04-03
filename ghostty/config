@@ -4,3 +4,7 @@ font-size = 14
 keybind = ctrl+j=unbind
 keybind = ctrl+backspace=text:\x17
 keybind = alt+backspace=text:\x17
+
+# Glass effect transparency
+background-opacity = 0.94
+background-blur-radius = 15
