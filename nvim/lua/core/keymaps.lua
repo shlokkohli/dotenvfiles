@@ -101,6 +101,47 @@ vim.keymap.set('n', '<Down>', ':resize +2<CR>', opts)
 vim.keymap.set('n', '<Left>', ':vertical resize -2<CR>', opts)
 vim.keymap.set('n', '<Right>', ':vertical resize +2<CR>', opts)
 
+-- Buffers: after switching away in Visual mode, `gv` restores selection when re-entering the buffer
+local restore_visual_on_enter = {}
+local function mark_restore_visual_if_needed()
+  local m = vim.fn.mode()
+  local b = string.byte(m, 1) or 0
+  if m == 'v' or m == 'V' or m == 's' or m == 'S' or b == 22 then
+    restore_visual_on_enter[vim.api.nvim_get_current_buf()] = true
+  end
+end
+local function buffer_next_maybe_restore_visual()
+  mark_restore_visual_if_needed()
+  vim.cmd.BufferNext()
+end
+local function buffer_prev_maybe_restore_visual()
+  mark_restore_visual_if_needed()
+  vim.cmd.BufferPrevious()
+end
+local restore_visual_au = vim.api.nvim_create_augroup('buffer-restore-visual', { clear = true })
+vim.api.nvim_create_autocmd('BufEnter', {
+  group = restore_visual_au,
+  callback = function(args)
+    local buf = args.buf
+    if not restore_visual_on_enter[buf] then
+      return
+    end
+    restore_visual_on_enter[buf] = nil
+    vim.schedule(function()
+      if vim.api.nvim_get_current_buf() ~= buf then
+        return
+      end
+      pcall(vim.cmd, 'normal! gv')
+    end)
+  end,
+})
+vim.api.nvim_create_autocmd('BufDelete', {
+  group = restore_visual_au,
+  callback = function(args)
+    restore_visual_on_enter[args.buf] = nil
+  end,
+})
+
 -- Buffers
 vim.keymap.set('n', '<Tab>', '<Cmd>BufferNext<CR>', opts)
 vim.keymap.set('n', '<S-Tab>', '<Cmd>BufferPrevious<CR>', opts)
@@ -127,9 +168,13 @@ vim.keymap.set('n', '<leader>tn', ':tabn<CR>', opts) --  go to next tab
 vim.keymap.set('n', '<leader>tp', ':tabp<CR>', opts) --  go to previous tab
 vim.keymap.set('n', '<C-Tab>', '<Cmd>BufferNext<CR>', opts)
 vim.keymap.set('n', '<C-S-Tab>', '<Cmd>BufferPrevious<CR>', opts)
+vim.keymap.set('v', '<C-Tab>', buffer_next_maybe_restore_visual, opts)
+vim.keymap.set('v', '<C-S-Tab>', buffer_prev_maybe_restore_visual, opts)
 -- Ghostty sends these kitty protocol sequences for Ctrl+Tab / Ctrl+Shift+Tab
 vim.keymap.set('n', '\x1b[9;5u', '<Cmd>BufferNext<CR>', opts)
 vim.keymap.set('n', '\x1b[9;6u', '<Cmd>BufferPrevious<CR>', opts)
+vim.keymap.set('v', '\x1b[9;5u', buffer_next_maybe_restore_visual, opts)
+vim.keymap.set('v', '\x1b[9;6u', buffer_prev_maybe_restore_visual, opts)
 -- Ghostty Ctrl+1-9 → BufferGoto (kitty protocol: ASCII code of digit + ;5u)
 vim.keymap.set('n', '\x1b[49;5u', '<Cmd>BufferGoto 1<CR>', opts)
 vim.keymap.set('n', '\x1b[50;5u', '<Cmd>BufferGoto 2<CR>', opts)

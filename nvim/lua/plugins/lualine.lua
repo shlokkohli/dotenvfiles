@@ -1,5 +1,6 @@
 return {
   'nvim-lualine/lualine.nvim',
+  dependencies = { 'catppuccin/nvim' },
   config = function()
     local mode = {
       'mode',
@@ -40,7 +41,8 @@ return {
     require('lualine').setup {
       options = {
         icons_enabled = true,
-        theme = 'catppuccin', -- Synced with Catppuccin colorscheme
+        -- Catppuccin theme is provided by the colorscheme plugin, not lualine's built-in themes.
+        theme = require('catppuccin.utils.lualine')(),
         -- Some useful glyphs:
         -- https://www.nerdfonts.com/cheat-sheet
         --        

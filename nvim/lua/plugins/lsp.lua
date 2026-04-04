@@ -42,6 +42,77 @@ return {
 
     -- disable LSP logging to avoid performance and freeze issues
     vim.lsp.set_log_level 'OFF'
+
+    -- Toggle context float: second K closes the float.
+    -- Prefer diagnostics at the cursor (like VS Code hover on squiggles),
+    -- then fall back to normal LSP hover documentation.
+    local info_winid = nil
+    local function toggle_lsp_hover()
+      if info_winid and vim.api.nvim_win_is_valid(info_winid) then
+        vim.api.nvim_win_close(info_winid, true)
+        info_winid = nil
+        return
+      end
+
+      info_winid = nil
+
+      local cursor = vim.api.nvim_win_get_cursor(0)
+      local line = cursor[1] - 1
+      local col = cursor[2]
+      local cursor_diags = vim.diagnostic.get(0, { lnum = line })
+      local has_cursor_diag = false
+
+      for _, diag in ipairs(cursor_diags) do
+        local start_col = diag.col or 0
+        local end_col = diag.end_col or start_col + 1
+        if col >= start_col and col < end_col then
+          has_cursor_diag = true
+          break
+        end
+      end
+
+      if has_cursor_diag then
+        local _, winid = vim.diagnostic.open_float(0, {
+          scope = 'cursor',
+          focus = false,
+          max_width = 80,
+          wrap = true,
+          border = 'rounded',
+          source = 'always',
+        })
+        if winid and vim.api.nvim_win_is_valid(winid) then
+          info_winid = winid
+        end
+        return
+      end
+
+      vim.lsp.buf.hover {
+        focus = false,
+        max_width = 80,
+        max_height = 20,
+        wrap = true,
+      }
+
+      -- Capture the hover window after it opens.
+      vim.schedule(function()
+        for _, winid in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+          if vim.api.nvim_win_is_valid(winid) then
+            local cfg = vim.api.nvim_win_get_config(winid)
+            if cfg.relative ~= '' then
+              local buf = vim.api.nvim_win_get_buf(winid)
+              if buf ~= vim.api.nvim_get_current_buf() then
+                local ft = vim.bo[buf].filetype
+                if ft == 'markdown' or vim.startswith(ft, 'markdown') then
+                  info_winid = winid
+                  return
+                end
+              end
+            end
+          end
+        end
+      end)
+    end
+
     --  This function gets run when an LSP attaches to a particular buffer.
     --    That is to say, every time a new file is opened that is associated with
     --    an lsp (for example, opening `main.rs` is associated with `rust_analyzer`) this
@@ -49,6 +120,7 @@ return {
     vim.api.nvim_create_autocmd('LspAttach', {
       group = vim.api.nvim_create_augroup('kickstart-lsp-attach', { clear = true }),
       callback = function(event)
+        local format_augroup = vim.api.nvim_create_augroup('kickstart-lsp-format', { clear = false })
         -- NOTE: Remember that Lua is a real programming language, and as such it is possible
         -- to define small helper and utility functions so you don't have to repeat yourself.
         --
@@ -62,26 +134,203 @@ return {
         -- Jump to the definition of the word under your cursor.
         --  This is where a variable was first declared, or where a function is defined, etc.
         --  To jump back, press <C-t>.
-        --  For TypeScript in monorepos, use "Go to Source Definition" first to
-        --  follow through re-exports and declaration maps to the real .ts source.
         local client = vim.lsp.get_client_by_id(event.data.client_id)
-        if client and client.name == 'ts_ls' then
-          map('gd', function()
-            local params = vim.lsp.util.make_position_params(0, client.offset_encoding)
-            client.request('workspace/executeCommand', {
-              command = '_typescript.goToSourceDefinition',
-              arguments = { params.textDocument.uri, params.position },
-            }, function(err, result)
-              if result and #result > 0 then
-                vim.lsp.util.show_document(result[1], client.offset_encoding, { focus = true })
-              else
-                -- Fallback to standard LSP definition via Telescope
-                require('telescope.builtin').lsp_definitions()
+
+        vim.api.nvim_clear_autocmds { group = format_augroup, buffer = event.buf }
+        local formatting_clients = vim.lsp.get_clients {
+          bufnr = event.buf,
+          method = vim.lsp.protocol.Methods.textDocument_formatting,
+        }
+        if not vim.tbl_isempty(formatting_clients) then
+          vim.api.nvim_create_autocmd('BufWritePre', {
+            group = format_augroup,
+            buffer = event.buf,
+            callback = function()
+              local bufnr = event.buf
+              local clients = vim.lsp.get_clients {
+                bufnr = bufnr,
+                method = vim.lsp.protocol.Methods.textDocument_formatting,
+              }
+
+              if vim.tbl_isempty(clients) then
+                return
               end
-            end, event.buf)
-          end, '[G]oto [D]efinition')
-        else
-          map('gd', require('telescope.builtin').lsp_definitions, '[G]oto [D]efinition')
+
+              local use_null_ls = vim.iter(clients):any(function(attached_client)
+                return attached_client.name == 'null-ls'
+              end)
+
+              vim.lsp.buf.format {
+                bufnr = bufnr,
+                async = false,
+                timeout_ms = 3000,
+                filter = use_null_ls and function(attached_client)
+                  return attached_client.name == 'null-ls'
+                end or nil,
+              }
+            end,
+          })
+        end
+
+        local function get_ts_client(bufnr)
+          for _, c in ipairs(vim.lsp.get_clients({ bufnr = bufnr })) do
+            if c.name == 'ts_ls' then
+              return c
+            end
+          end
+          return nil
+        end
+
+        local function push_tagstack(tagname)
+          local from = { vim.fn.bufnr('%'), vim.fn.line('.'), vim.fn.col('.'), 0 }
+          local items = { { tagname = tagname, from = from } }
+          vim.fn.settagstack(vim.fn.win_getid(), { items = items }, 't')
+        end
+
+        local function grep_definition_fallback(symbol, root)
+          local current_file = vim.api.nvim_buf_get_name(0)
+          local current_line = vim.api.nvim_win_get_cursor(0)[1]
+          local output = vim.fn.systemlist({
+            'rg',
+            '--vimgrep',
+            '--smart-case',
+            '--glob',
+            '!**/node_modules/**',
+            '--glob',
+            '!**/dist/**',
+            symbol,
+            root,
+          })
+          if vim.v.shell_error ~= 0 and #output == 0 then
+            vim.notify('No definition found for ' .. symbol, vim.log.levels.INFO)
+            return
+          end
+
+          local items = {}
+          for _, line in ipairs(output) do
+            local filename, lnum, col, text = line:match '^(.-):(%d+):(%d+):(.*)$'
+            local is_current_line = filename == current_file and tonumber(lnum) == current_line
+            local is_method_call = text and text:find('.' .. symbol, 1, true)
+            if filename and not is_current_line and not is_method_call then
+              table.insert(items, {
+                filename = filename,
+                lnum = tonumber(lnum),
+                col = tonumber(col),
+                text = text,
+              })
+            end
+          end
+
+          if #items == 0 then
+            vim.notify('No definition found for ' .. symbol, vim.log.levels.INFO)
+            return
+          end
+
+          if #items == 1 then
+            push_tagstack(symbol)
+            if items[1].filename ~= current_file then
+              vim.cmd('edit ' .. vim.fn.fnameescape(items[1].filename))
+            end
+            vim.api.nvim_win_set_cursor(0, { items[1].lnum, math.max(items[1].col - 1, 0) })
+            vim.cmd 'normal! zz'
+            return
+          end
+
+          vim.fn.setqflist({}, ' ', {
+            title = 'Definition search: ' .. symbol,
+            items = items,
+          })
+          vim.cmd 'copen'
+        end
+
+        local function jump_to_location(loc, offset_encoding)
+          local uri = loc.uri or loc.targetUri
+          local range = loc.range or loc.targetSelectionRange or loc.targetRange
+          if not uri or not range then
+            return false
+          end
+          push_tagstack(vim.fn.expand '<cword>')
+          vim.lsp.util.show_document({
+            uri = uri,
+            range = range,
+          }, offset_encoding, { focus = true })
+          return true
+        end
+
+        map('gd', function()
+          local ts = get_ts_client(event.buf)
+          if not ts then
+            require('telescope.builtin').lsp_definitions()
+            return
+          end
+
+          local win = vim.api.nvim_get_current_win()
+          local params = vim.lsp.util.make_position_params(win, ts.offset_encoding)
+          local symbol = vim.fn.expand '<cword>'
+          local root = ts.config.root_dir or vim.fn.getcwd()
+          local line = vim.api.nvim_get_current_line()
+          local is_member_access = line:find('.' .. symbol, 1, true) ~= nil
+
+          local function fallback_to_search()
+            grep_definition_fallback(symbol, root)
+          end
+
+          -- Imported instance methods and `this.method()` calls are the cases
+          -- where ts_ls is currently returning `any` after initialization.
+          -- For those, search the package root directly.
+          if is_member_access then
+            fallback_to_search()
+            return
+          end
+
+          local function try_source_definition()
+            ts:exec_cmd({
+              command = '_typescript.goToSourceDefinition',
+              title = 'Go to source definition',
+              arguments = { params.textDocument.uri, params.position },
+            }, { bufnr = event.buf }, function(err, result)
+              if err or not result or vim.tbl_isempty(result) or not jump_to_location(result[1], ts.offset_encoding) then
+                fallback_to_search()
+              end
+            end)
+          end
+
+          ts:request('textDocument/definition', params, function(err, result)
+            if err or not result or vim.tbl_isempty(result) then
+              try_source_definition()
+              return
+            end
+
+            if not jump_to_location(result[1], ts.offset_encoding) then
+              try_source_definition()
+            end
+          end, event.buf)
+        end, '[G]oto [D]efinition')
+
+        -- For TypeScript, keep source-definition on a separate key so we can still
+        -- jump through re-exports or .d.ts shims without breaking local definitions.
+        if client and client.name == 'ts_ls' then
+          map('gS', function()
+            local win = vim.api.nvim_get_current_win()
+            local params = vim.lsp.util.make_position_params(win, client.offset_encoding)
+            client:exec_cmd({
+              command = '_typescript.goToSourceDefinition',
+              title = 'Go to source definition',
+              arguments = { params.textDocument.uri, params.position },
+            }, { bufnr = event.buf }, function(err, result)
+              if err then
+                vim.notify('Go to source definition failed: ' .. err.message, vim.log.levels.ERROR)
+                return
+              end
+
+              if not result or vim.tbl_isempty(result) then
+                vim.notify('No source definition found', vim.log.levels.INFO)
+                return
+              end
+
+              vim.lsp.util.show_document(result[1], client.offset_encoding, { focus = true })
+            end)
+          end, '[G]oto [S]ource Definition')
         end
 
         -- Find references for the word under your cursor.
@@ -115,6 +364,8 @@ return {
         -- WARN: This is not Goto Definition, this is Goto Declaration.
         --  For example, in C this would take you to the header.
         map('gD', vim.lsp.buf.declaration, '[G]oto [D]eclaration')
+
+        map('K', toggle_lsp_hover, 'Hover Documentation')
 
         -- The following two autocommands are used to highlight references of the
         -- word under your cursor when your cursor rests there for a little while.
@@ -191,11 +442,13 @@ return {
       ts_ls = { -- tsserver
         -- In monorepos, anchor ts_ls to the nearest tsconfig.json (sub-package)
         -- so it uses the correct project scope for type resolution.
-        root_dir = function(fname)
+        root_dir = function(bufnr, on_dir)
           local util = require('lspconfig.util')
+          local fname = vim.api.nvim_buf_get_name(bufnr)
           -- Prefer nearest tsconfig.json (sub-package), then package.json, then .git
-          return util.root_pattern('tsconfig.json')(fname)
+          local root = util.root_pattern('tsconfig.json')(fname)
             or util.root_pattern('package.json', '.git')(fname)
+          on_dir(root)
         end,
         -- ts_ls config to ensure ts_ls sever does not format code
         capabilities = {
@@ -211,6 +464,15 @@ return {
           client.server_capabilities.semanticTokensProvider = nil
         end,
       }, -- tsserver is deprecated
+      biome = {
+        -- Only attach in projects that explicitly opt in to Biome
+        root_dir = function(bufnr, on_dir)
+          local util = require 'lspconfig.util'
+          local fname = vim.api.nvim_buf_get_name(bufnr)
+          local root = util.root_pattern('biome.json', 'biome.jsonc')(fname)
+          on_dir(root)
+        end,
+      },
       ruff = {},
       pylsp = {
         settings = {
@@ -231,19 +493,21 @@ return {
       html = { filetypes = { 'html', 'twig', 'hbs' } },
       cssls = {},
       tailwindcss = {
-  root_dir = function(fname)
-    local util = require("lspconfig.util")
-    return util.root_pattern(
-      "tailwind.config.js",
-      "tailwind.config.cjs",
-      "tailwind.config.ts",
-      "postcss.config.js",
-      "postcss.config.cjs",
-      "package.json",
-      ".git"
-    )(fname)
-  end,
-},
+        root_dir = function(bufnr, on_dir)
+          local util = require 'lspconfig.util'
+          local fname = vim.api.nvim_buf_get_name(bufnr)
+          local root = util.root_pattern(
+            'tailwind.config.js',
+            'tailwind.config.cjs',
+            'tailwind.config.ts',
+            'postcss.config.js',
+            'postcss.config.cjs',
+            'package.json',
+            '.git'
+          )(fname)
+          on_dir(root)
+        end,
+      },
       dockerls = {},
       sqlls = {},
       terraformls = {},
@@ -296,23 +560,98 @@ return {
     })
     require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
+    -- mason-lspconfig v2 can auto-enable installed servers with their default
+    -- configs. Disable that so our explicit per-server settings actually win.
     require('mason-lspconfig').setup {
-      handlers = {
-        function(server_name)
-          local server = servers[server_name] or {}
-          -- This handles overriding only values explicitly passed
-          -- by the server configuration above. Useful when disabling
-          -- certain features of an LSP (for example, turning off formatting for tsserver)
-          server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
-          require('lspconfig')[server_name].setup(server)
-        end,
-      },
+      automatic_enable = false,
     }
 
+    for server_name, server in pairs(servers) do
+      -- This handles overriding only values explicitly passed
+      -- by the server configuration above. Useful when disabling
+      -- certain features of an LSP (for example, turning off formatting for tsserver)
+      server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
+      vim.lsp.config(server_name, server)
+      vim.lsp.enable(server_name)
+    end
+
+    -- The built-in nvim-lspconfig :LspRestart command only understands clients
+    -- that were registered through vim.lsp.config(). That excludes null-ls,
+    -- which causes "Invalid server name 'null-ls'" when restarting a buffer
+    -- that has both ts_ls and null-ls attached.
+    pcall(vim.api.nvim_del_user_command, 'LspRestart')
+    vim.api.nvim_create_user_command('LspRestart', function(info)
+      local bufnr = vim.api.nvim_get_current_buf()
+      local targets = {}
+      local wanted = {}
+
+      for _, name in ipairs(info.fargs or {}) do
+        wanted[name] = true
+      end
+
+      for _, client in ipairs(vim.lsp.get_clients({ bufnr = bufnr })) do
+        if vim.tbl_isempty(wanted) or wanted[client.name] then
+          table.insert(targets, client)
+        end
+      end
+
+      if #targets == 0 then
+        vim.notify('No LSP clients attached to this buffer', vim.log.levels.INFO)
+        return
+      end
+
+      local managed = {}
+      for _, client in ipairs(targets) do
+        if vim.lsp.config[client.name] ~= nil then
+          managed[client.name] = true
+        end
+        client:stop(info.bang or false)
+      end
+
+      vim.defer_fn(function()
+        for name, _ in pairs(managed) do
+          vim.lsp.enable(name)
+        end
+
+        if vim.api.nvim_buf_is_valid(bufnr) then
+          vim.schedule(function()
+            vim.cmd 'edit'
+          end)
+        end
+      end, 300)
+    end, {
+      desc = 'Restart LSP clients for the current buffer',
+      nargs = '*',
+      bang = true,
+      complete = function()
+        return vim
+          .iter(vim.lsp.get_clients({ bufnr = vim.api.nvim_get_current_buf() }))
+          :map(function(client)
+            return client.name
+          end)
+          :totable()
+      end,
+    })
+
     vim.diagnostic.config {
-      virtual_text = false,
+      -- Show inline text for real errors so syntax issues are obvious even when
+      -- terminal undercurls are subtle or the colorscheme is transparent.
+      virtual_text = {
+        severity = { min = vim.diagnostic.severity.ERROR },
+        spacing = 2,
+        source = 'if_many',
+        prefix = '●',
+      },
       virtual_lines = false,
       underline = true,
+      signs = {
+        text = {
+          [vim.diagnostic.severity.ERROR] = 'E',
+          [vim.diagnostic.severity.WARN] = 'W',
+          [vim.diagnostic.severity.INFO] = 'I',
+          [vim.diagnostic.severity.HINT] = 'H',
+        },
+      },
       update_in_insert = true,
       severity_sort = true,
       float = {

@@ -62,7 +62,7 @@ return {
             },
           },
           which_key = false,
-          lualine = true,
+          lualine = {},
           neotree = true,
           alpha = true,
           scrollbar = true,
@@ -73,6 +73,10 @@ return {
         highlight_overrides = {
           all = function(colors)
             return {
+              -- Make gutter line numbers slightly darker for better contrast
+              -- against the transparent background without making them too loud.
+              LineNr                   = { fg = colors.surface2 },
+              CursorLineNr             = { fg = colors.blue, bold = true },
               TelescopeNormal          = { bg = 'NONE' },
               TelescopePreviewNormal   = { bg = 'NONE' },
               TelescopePromptNormal    = { bg = 'NONE' },

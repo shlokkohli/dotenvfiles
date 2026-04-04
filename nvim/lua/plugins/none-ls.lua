@@ -9,6 +9,7 @@ return {
     local formatting = null_ls.builtins.formatting
     local diagnostics = null_ls.builtins.diagnostics
     local util = require 'lspconfig.util'
+    local biome_root = util.root_pattern('rome.json', 'biome.json', 'biome.jsonc')
 
     local function has_eslint_config(dir)
       local config_files = {
@@ -25,6 +26,34 @@ return {
       return false
     end
 
+    local function has_local_bin(dir, name)
+      if not dir then
+        return false
+      end
+      return util.path.exists(util.path.join(dir, 'node_modules', '.bin', name))
+    end
+
+    local function has_biome(bufname)
+      -- Require a biome config file in the project root — just having the
+      -- binary installed globally (via Mason) is not enough to opt in.
+      local root = biome_root(bufname)
+      if not root then
+        return false
+      end
+      return vim.fn.executable 'biome' == 1 or has_local_bin(root, 'biome')
+    end
+
+    local biome_filetypes = {
+      'javascript',
+      'typescript',
+      'javascriptreact',
+      'typescriptreact',
+      'json',
+      'jsonc',
+      'css',
+      'graphql',
+    }
+
     local eslint_root = util.root_pattern('.eslintrc.js', '.eslintrc.cjs', '.eslintrc.json', '.eslintrc')
 
     local eslint_d = require('none-ls.diagnostics.eslint_d').with {
@@ -39,6 +68,7 @@ return {
 
     require('mason-null-ls').setup {
       ensure_installed = {
+        'biome',
         'prettier',
         'stylua',
         'eslint_d',
@@ -53,19 +83,22 @@ return {
     local sources = {
       diagnostics.checkmake,
       eslint_d,
+      formatting.biome.with {
+        filetypes = biome_filetypes,
+        condition = function(utils)
+          return has_biome(utils.bufname)
+        end,
+        cwd = function(params)
+          return biome_root(params.bufname)
+        end,
+      },
       formatting.clang_format.with { filetypes = { 'c', 'cpp' } },
       formatting.prettier.with {
         filetypes = {
-          'javascript',
-          'typescript',
-          'javascriptreact',
-          'typescriptreact',
-          'json',
           'yaml',
           'markdown',
           'html',
         },
-        extra_args = { '--plugin', 'prettier-plugin-organize-imports' },
       },
       formatting.stylua,
       formatting.shfmt.with { args = { '-i', '4' } },
@@ -77,11 +110,14 @@ return {
     null_ls.setup {
       sources = sources,
       on_attach = function(client, bufnr)
-        if client.name == 'null-ls' and (vim.bo[bufnr].filetype == 'c' or vim.bo[bufnr].filetype == 'cpp') then
-          client.server_capabilities.definitionProvider = false
+        if client.name == 'null-ls' then
+          -- null-ls never provides hover — always let the real LSP handle it
           client.server_capabilities.hoverProvider = false
-          client.server_capabilities.referencesProvider = false
-          client.server_capabilities.renameProvider = false
+          if vim.bo[bufnr].filetype == 'c' or vim.bo[bufnr].filetype == 'cpp' then
+            client.server_capabilities.definitionProvider = false
+            client.server_capabilities.referencesProvider = false
+            client.server_capabilities.renameProvider = false
+          end
         end
       end,
     }
