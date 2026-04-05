@@ -43,6 +43,24 @@ vim.opt.iskeyword:append '-' -- Hyphenated words recognized by searches (default
 vim.opt.formatoptions:remove { 'c', 'r', 'o' } -- Don't insert the current comment leader automatically for auto-wrapping comments using 'textwidth', hitting <Enter> in insert mode, or hitting 'o' or 'O' in normal mode. (default: 'croql')
 vim.opt.runtimepath:remove '/usr/share/vim/vimfiles' -- Separate Vim plugins from Neovim in case Vim still in use (default: includes this path if Vim is installed)
 
+-- Treesitter-based folding (set per-buffer so Treesitter is attached first)
+vim.o.foldlevel = 99
+vim.o.foldlevelstart = 99
+vim.o.foldenable = true
+vim.api.nvim_create_autocmd({ 'BufReadPost', 'BufNewFile' }, {
+  group = vim.api.nvim_create_augroup('ts-folding', { clear = true }),
+  callback = function()
+    -- Only enable if Treesitter can parse this buffer
+    local ok = pcall(vim.treesitter.get_parser, 0)
+    if ok then
+      vim.opt_local.foldmethod = 'expr'
+      vim.opt_local.foldexpr = 'v:lua.vim.treesitter.foldexpr()'
+    else
+      vim.opt_local.foldmethod = 'indent' -- fallback for unsupported filetypes
+    end
+  end,
+})
+
 -- Note: Telescope literal search is handled via --fixed-strings in vimgrep_arguments
 -- (see telescope.lua). Do NOT set vim.o.magic = false here — it breaks Telescope's
 -- internal cursor positioning when jumping to matched lines.
