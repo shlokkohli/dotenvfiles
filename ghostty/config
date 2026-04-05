@@ -8,3 +8,6 @@ keybind = alt+backspace=text:\x17
 # Glass effect transparency
 background-opacity = 0.94
 background-blur-radius = 15
+
+# Line spacing (cell height adjustment)
+adjust-cell-height = 20%

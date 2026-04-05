@@ -58,22 +58,12 @@ return {
 
       local cursor = vim.api.nvim_win_get_cursor(0)
       local line = cursor[1] - 1
-      local col = cursor[2]
-      local cursor_diags = vim.diagnostic.get(0, { lnum = line })
-      local has_cursor_diag = false
+      local line_diags = vim.diagnostic.get(0, { lnum = line })
+      local has_line_diag = #line_diags > 0
 
-      for _, diag in ipairs(cursor_diags) do
-        local start_col = diag.col or 0
-        local end_col = diag.end_col or start_col + 1
-        if col >= start_col and col < end_col then
-          has_cursor_diag = true
-          break
-        end
-      end
-
-      if has_cursor_diag then
+      if has_line_diag then
         local _, winid = vim.diagnostic.open_float(0, {
-          scope = 'cursor',
+          scope = 'line',
           focus = false,
           max_width = 80,
           wrap = true,
