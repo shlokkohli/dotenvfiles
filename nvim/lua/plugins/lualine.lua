@@ -13,7 +13,7 @@ return {
     local filename = {
       'filename',
       file_status = true, -- displays file status (readonly status, modified status)
-      path = 0, -- 0 = just filename, 1 = relative path, 2 = absolute path
+      path = 2, -- 0 = just filename, 1 = relative path, 2 = absolute path
     }
 
     local hide_in_width = function()
@@ -38,11 +38,17 @@ return {
       cond = hide_in_width,
     }
 
+    local custom_theme = require('catppuccin.utils.lualine')()
+    local colors = require('catppuccin.palettes').get_palette('macchiato')
+    
+    -- Change the background of the middle section to differentiate it from the editor
+    custom_theme.normal.c.bg = colors.mantle
+    custom_theme.inactive.c.bg = colors.mantle
+
     require('lualine').setup {
       options = {
         icons_enabled = true,
-        -- Catppuccin theme is provided by the colorscheme plugin, not lualine's built-in themes.
-        theme = require('catppuccin.utils.lualine')(),
+        theme = custom_theme,
         -- Some useful glyphs:
         -- https://www.nerdfonts.com/cheat-sheet
         --        

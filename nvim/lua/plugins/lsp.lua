@@ -171,6 +171,14 @@ return {
           return nil
         end
 
+        local function has_definition_client(bufnr)
+          local definition_method = vim.lsp.protocol.Methods.textDocument_definition
+          return not vim.tbl_isempty(vim.lsp.get_clients({
+            bufnr = bufnr,
+            method = definition_method,
+          }))
+        end
+
         local function push_tagstack(tagname)
           local from = { vim.fn.bufnr('%'), vim.fn.line('.'), vim.fn.col('.'), 0 }
           local items = { { tagname = tagname, from = from } }
@@ -250,7 +258,11 @@ return {
         map('gd', function()
           local ts = get_ts_client(event.buf)
           if not ts then
-            require('telescope.builtin').lsp_definitions()
+            if has_definition_client(event.buf) then
+              vim.lsp.buf.definition()
+            else
+              vim.notify('No LSP client with definition support is attached to this buffer', vim.log.levels.WARN)
+            end
             return
           end
 
@@ -414,6 +426,14 @@ return {
     --  - capabilities (table): Override fields in capabilities. Can be used to disable certain LSP features.
     --  - settings (table): Override the default settings passed when initializing the server.
     --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
+    local vue_language_server_path = vim.fn.stdpath 'data'
+      .. '/mason/packages/vue-language-server/node_modules/@vue/language-server'
+    local vue_plugin = vim.uv.fs_stat(vue_language_server_path) and {
+      name = '@vue/typescript-plugin',
+      location = vue_language_server_path,
+      languages = { 'javascript', 'javascriptreact', 'typescript', 'typescriptreact', 'vue' },
+    } or nil
+
     local servers = {
       clangd = {
         cmd = { 'clangd', '--offset-encoding=utf-8' },
@@ -440,6 +460,18 @@ return {
             or util.root_pattern('package.json', '.git')(fname)
           on_dir(root)
         end,
+        init_options = vim.tbl_deep_extend('force', {
+          hostInfo = 'neovim',
+        }, vue_plugin and {
+          plugins = { vue_plugin },
+        } or {}),
+        filetypes = {
+          'javascript',
+          'javascriptreact',
+          'typescript',
+          'typescriptreact',
+          'vue',
+        },
         -- ts_ls config to ensure ts_ls sever does not format code
         capabilities = {
           documentFormattingProvider = false,
@@ -454,6 +486,7 @@ return {
           client.server_capabilities.semanticTokensProvider = nil
         end,
       }, -- tsserver is deprecated
+      vue_ls = {},
       biome = {
         -- Only attach in projects that explicitly opt in to Biome
         root_dir = function(bufnr, on_dir)

@@ -1,5 +1,13 @@
 return {
   {
+    'LazyVim/LazyVim',
+    enabled = false,
+  },
+  {
+    'folke/tokyonight.nvim',
+    enabled = false,
+  },
+  {
     'catppuccin/nvim',
     name = 'catppuccin',
     priority = 1000,
@@ -77,6 +85,9 @@ return {
               -- against the transparent background without making them too loud.
               LineNr                   = { fg = colors.surface2 },
               CursorLineNr             = { fg = colors.blue, bold = true },
+              -- To change the color of the highlighted line, change `surface0` to another color 
+              -- from the catppuccin palette like `surface1`, `surface2`, `mantle`, or a hex `#444444`
+              CursorLine               = { bg = colors.surface0 },
               TelescopeNormal          = { bg = 'NONE' },
               TelescopePreviewNormal   = { bg = 'NONE' },
               TelescopePromptNormal    = { bg = 'NONE' },

@@ -12,41 +12,33 @@ vim.keymap.set('i', '∑', '<C-o>w', opts) -- macOS Option+W
 -- Insert mode: Option+J = move down 1 line, Option+K = move up 1 line
 -- vim.keymap.set('i', '<M-j>', '<C-o>j', opts)
 vim.keymap.set('i', '<M-k>', '<C-o>k', opts)
--- vim.keymap.set('i', '∆', '<Esc>:m .+1<CR>==gi', { silent = true }) -- macOS Option+J (move line down)
+vim.keymap.set('i', '∆', '<Esc>:m .+1<CR>==gi', { silent = true }) -- macOS Option+J (move line down)
 vim.keymap.set('i', '˚', '<Esc>:m .-2<CR>==gi', { silent = true }) -- macOS Option+K (move line up)
 
 -- normal mode
 vim.keymap.set('n', '<A-Up>', ':m .-2<CR>==', { silent = true })
 vim.keymap.set('n', '<A-Down>', ':m .+1<CR>==', { silent = true })
 vim.keymap.set('n', '<A-k>', ':m .-2<CR>==', { silent = true })
--- vim.keymap.set('n', '<A-j>', ':m .+1<CR>==', { silent = true })
+vim.keymap.set('n', '<A-j>', ':m .+1<CR>==', { silent = true })
 vim.keymap.set('n', '˚', ':m .-2<CR>==', { silent = true }) -- macOS Option+K
--- vim.keymap.set('n', '∆', ':m .+1<CR>==', { silent = true }) -- macOS Option+J
+vim.keymap.set('n', '∆', ':m .+1<CR>==', { silent = true }) -- macOS Option+J
 
 
 vim.keymap.set('n', '<leader>n', ':enew<CR>', { noremap = true, silent = true })
 
 -- visual mode
-local function visual_move_up()
-  vim.cmd("'<,'>move '<-2")
-  vim.cmd('normal! gv=gv')
-end
-local function visual_move_down()
-  vim.cmd("'<,'>move '>+1")
-  vim.cmd('normal! gv=gv')
-end
-vim.keymap.set('v', '<A-Up>', visual_move_up, { silent = true })
-vim.keymap.set('v', '<A-Down>', visual_move_down, { silent = true })
-vim.keymap.set('v', '<A-k>', visual_move_up, { silent = true })
--- vim.keymap.set('v', '<A-j>', visual_move_down, { silent = true })
-vim.keymap.set('v', '˚', visual_move_up, { silent = true })  -- macOS Option+K
--- vim.keymap.set('v', '∆', visual_move_down, { silent = true }) -- macOS Option+J
+vim.keymap.set('v', '<A-Up>', ":m '<-2<CR>gv=gv", { silent = true })
+vim.keymap.set('v', '<A-Down>', ":m '>+1<CR>gv=gv", { silent = true })
+vim.keymap.set('v', '<A-k>', ":m '<-2<CR>gv=gv", { silent = true })
+vim.keymap.set('v', '<A-j>', ":m '>+1<CR>gv=gv", { silent = true })
+vim.keymap.set('v', '˚', ":m '<-2<CR>gv=gv", { silent = true })  -- macOS Option+K
+vim.keymap.set('v', '∆', ":m '>+1<CR>gv=gv", { silent = true }) -- macOS Option+J
 
 -- insert mode
 vim.keymap.set('i', '<A-Up>', '<Esc>:m .-2<CR>==gi', { silent = true })
 vim.keymap.set('i', '<A-Down>', '<Esc>:m .+1<CR>==gi', { silent = true })
 vim.keymap.set('i', '<A-k>', '<Esc>:m .-2<CR>==gi', { silent = true })
--- vim.keymap.set('i', '<A-j>', '<Esc>:m .+1<CR>==gi', { silent = true })
+vim.keymap.set('i', '<A-j>', '<Esc>:m .+1<CR>==gi', { silent = true })
 
 -- Switch to insert mode
 vim.keymap.set('i', 'jk', '<Esc>', { noremap = true, silent = true })
@@ -57,11 +49,13 @@ vim.keymap.set({ 'n', 'i', 'v', 'x', 's', 'o', 'c', 't' }, '<C-z>', '<Nop>', { s
 
 vim.keymap.set('n', '<leader>cc', '<cmd>cclose<CR>', { desc = 'Close quickfix' })
 
--- visual mode: d = delete (no yank)
-vim.keymap.set('v', 'd', '"_d', { noremap = true, silent = true })
+-- normal and visual mode: d = delete (no yank)
+vim.keymap.set({ 'n', 'v' }, 'd', '"_d', { noremap = true, silent = true })
+vim.keymap.set({ 'n', 'v' }, 'D', '"_D', { noremap = true, silent = true })
 
--- visual mode: _d = cut (yank + delete)
-vim.keymap.set('v', '_d', 'd', { noremap = true, silent = true })
+-- normal and visual mode: _d = cut (yank + delete)
+vim.keymap.set({ 'n', 'v' }, '_d', 'd', { noremap = true, silent = true })
+vim.keymap.set({ 'n', 'v' }, '_D', 'D', { noremap = true, silent = true })
 
 -- visual mode: y = yank without moving cursor
 vim.keymap.set({ 'v', 'x' }, 'y', 'ygv<Esc>', { noremap = true, silent = true, desc = 'Yank without moving cursor' })
@@ -156,8 +150,7 @@ vim.keymap.set('n', '<leader>xs', '<cmd>close<CR>', opts) -- close current split
 
 -- Navigate between splits
 vim.keymap.set('n', '<C-k>', ':wincmd k<CR>', opts)
--- C-j reserved for toggleterm; use vim-tmux-navigator or :wincmd j manually
--- vim.keymap.set('n', '<C-j>', ':wincmd j<CR>', opts)
+vim.keymap.set('n', '<C-j>', ':wincmd j<CR>', opts)
 vim.keymap.set('n', '<C-h>', ':wincmd h<CR>', opts)
 vim.keymap.set('n', '<C-l>', ':wincmd l<CR>', opts)
 

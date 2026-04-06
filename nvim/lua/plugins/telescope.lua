@@ -15,8 +15,138 @@ return {
     { 'nvim-tree/nvim-web-devicons', enabled = vim.g.have_nerd_font },
   },
   config = function()
+    local Path = require 'plenary.path'
+    local conf = require('telescope.config').values
+    local from_entry = require 'telescope.from_entry'
+    local previewers = require 'telescope.previewers'
+
+    local function grep_preview_query(opts, status)
+      if status and status.picker and status.picker._get_prompt then
+        local prompt = status.picker:_get_prompt()
+        if prompt and prompt ~= '' then
+          return prompt
+        end
+      end
+
+      if type(opts.search) == 'string' and opts.search ~= '' then
+        return opts.search
+      end
+
+      if type(opts.default_text) == 'string' and opts.default_text ~= '' then
+        return opts.default_text
+      end
+    end
+
+    local function grep_preview_pattern(query)
+      if not query or query == '' or query:find('\n', 1, true) then
+        return nil
+      end
+
+      local case_prefix = ''
+      if vim.o.ignorecase then
+        case_prefix = (vim.o.smartcase and query:find('%u')) and '\\C' or '\\c'
+      end
+
+      return case_prefix .. '\\V' .. query:gsub('\\', '\\\\')
+    end
+
+    local function literal_grep_previewer(opts)
+      opts = opts or {}
+      local cwd = opts.cwd or vim.uv.cwd()
+
+      local function configure_preview_window(winid)
+        if not winid or not vim.api.nvim_win_is_valid(winid) then
+          return
+        end
+
+        vim.wo[winid].cursorline = true
+        vim.wo[winid].cursorlineopt = 'number'
+        vim.wo[winid].number = true
+        vim.wo[winid].relativenumber = true
+        vim.wo[winid].numberwidth = vim.o.numberwidth
+      end
+
+      local function clear_match(self)
+        if self.state and self.state.hl_id then
+          pcall(vim.fn.matchdelete, self.state.hl_id, self.state.winid)
+          self.state.hl_id = nil
+        end
+      end
+
+      local function jump_to_match(self, bufnr, entry, status)
+        clear_match(self)
+        configure_preview_window(self.state and self.state.winid)
+
+        if entry.lnum and entry.lnum > 0 and self.state.winid and vim.api.nvim_win_is_valid(self.state.winid) then
+          local col = math.max(0, (entry.col or 1) - 1)
+          pcall(vim.api.nvim_win_set_cursor, self.state.winid, { entry.lnum, col })
+          vim.api.nvim_buf_call(bufnr, function()
+            vim.cmd 'norm! zz'
+          end)
+        end
+
+        local pattern = grep_preview_pattern(grep_preview_query(opts, status))
+        if not pattern then
+          return
+        end
+
+        vim.api.nvim_buf_call(bufnr, function()
+          self.state.hl_id = vim.fn.matchadd('TelescopePreviewMatch', pattern)
+        end)
+      end
+
+      return previewers.new_buffer_previewer {
+        title = 'Grep Preview',
+        dyn_title = function(_, entry)
+          return Path:new(from_entry.path(entry, false, false)):normalize(cwd)
+        end,
+        teardown = function(self)
+          clear_match(self)
+        end,
+        get_buffer_by_name = function(_, entry)
+          return from_entry.path(entry, false, false)
+        end,
+        define_preview = function(self, entry, status)
+          local has_buftype = entry.bufnr
+            and vim.api.nvim_buf_is_valid(entry.bufnr)
+            and vim.bo[entry.bufnr].buftype ~= ''
+            or false
+          local path
+
+          if not has_buftype then
+            path = from_entry.path(entry, true, false)
+            if path == nil or path == '' then
+              return
+            end
+          end
+
+          if entry.bufnr and (path == '[No Name]' or has_buftype) then
+            local lines = vim.api.nvim_buf_get_lines(entry.bufnr, 0, -1, false)
+            vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, lines)
+            vim.schedule(function()
+              if vim.api.nvim_buf_is_valid(self.state.bufnr) then
+                jump_to_match(self, self.state.bufnr, entry, status)
+              end
+            end)
+            return
+          end
+
+          conf.buffer_previewer_maker(path, self.state.bufnr, {
+            bufname = self.state.bufname,
+            winid = self.state.winid,
+            preview = opts.preview,
+            callback = function(bufnr)
+              jump_to_match(self, bufnr, entry, status)
+            end,
+            file_encoding = opts.file_encoding,
+          })
+        end,
+      }
+    end
+
     require('telescope').setup {
       defaults = {
+        grep_previewer = literal_grep_previewer,
         layout_strategy = 'horizontal',
         layout_config = {
           horizontal = {
@@ -140,35 +270,54 @@ return {
     -- See `:help telescope.builtin`
     local builtin = require 'telescope.builtin'
 
+    local function literal_grep(search, opts)
+      if not search or search == '' then
+        return
+      end
+
+      local additional_args = {
+        '--hidden',
+        '--glob', '!**/node_modules/**',
+        '--glob', '!**/generated/**',
+        '--glob', '!.git/**',
+        '--glob', '!.venv/**',
+      }
+
+      if opts and opts.multiline then
+        table.insert(additional_args, 2, '--multiline')
+      end
+
+      builtin.grep_string {
+        prompt_title = opts and opts.prompt_title or 'Grep literal',
+        search = search,
+        use_regex = true,
+        additional_args = additional_args,
+      }
+    end
+
+    local function get_visual_selection()
+      local save_v = vim.fn.getreg 'v'
+      vim.cmd [[noautocmd sil norm! "vy]]
+      local text = vim.fn.getreg 'v'
+      vim.fn.setreg('v', save_v)
+      return text
+    end
+
     -- Live grep's prompt is single-line only, so multi-line clipboard/selection cannot
     -- be the full pattern. Use grep_string + ripgrep --multiline for that case.
     local function live_grep_smart()
       local mode = vim.fn.mode()
       if mode == 'v' or mode == 'V' or mode == '\22' then
         -- Visual mode: grab the selection
-        local save_v = vim.fn.getreg 'v'
-        vim.cmd [[noautocmd sil norm! "vy]]
-        local text = vim.fn.getreg 'v'
-        vim.fn.setreg('v', save_v)
-
+        local text = get_visual_selection()
         local trimmed = text and text:gsub('[\r\n]+$', '') or ''
         local lines = vim.fn.split(trimmed, '\n', true)
 
         if #lines > 1 and trimmed ~= '' then
-          builtin.grep_string {
+          literal_grep(trimmed, {
             prompt_title = 'Grep multiline',
-            search = trimmed,
-            use_regex = false,
-            additional_args = {
-              '--hidden',
-              '--multiline',
-              '--fixed-strings',
-              '--glob', '!**/node_modules/**',
-              '--glob', '!**/generated/**',
-              '--glob', '!.git/**',
-              '--glob', '!.venv/**',
-            },
-          }
+            multiline = true,
+          })
         else
           builtin.live_grep {
             default_text = trimmed ~= '' and trimmed or nil,
@@ -179,14 +328,35 @@ return {
         builtin.live_grep()
       end
     end
+
+    local function search_by_literal_grep()
+      local mode = vim.fn.mode()
+      if mode == 'v' or mode == 'V' or mode == '\22' then
+        local text = get_visual_selection()
+        local selected = text and text:gsub('[\r\n]+$', '') or ''
+        local lines = vim.fn.split(selected, '\n', true)
+
+        literal_grep(selected, {
+          prompt_title = #lines > 1 and 'Grep multiline' or 'Grep literal',
+          multiline = #lines > 1,
+        })
+        return
+      end
+
+      local query = vim.fn.input 'Grep literal > '
+      literal_grep(query, { prompt_title = 'Grep literal' })
+    end
     vim.keymap.set('n', '<leader>sh', builtin.help_tags, { desc = '[S]earch [H]elp' })
     vim.keymap.set('n', '<leader>sk', builtin.keymaps, { desc = '[S]earch [K]eymaps' })
     vim.keymap.set('n', '<leader>sf', builtin.find_files, { desc = '[S]earch [F]iles' })
     vim.keymap.set('n', '<leader>ss', builtin.builtin, { desc = '[S]earch [S]elect Telescope' })
     vim.keymap.set('n', '<leader>sw', function()
-      builtin.grep_string() -- uses global default preview_width = 0.55
+      builtin.grep_string {
+        search = vim.fn.expand '<cword>',
+      } -- uses global default preview_width = 0.55
     end, { desc = '[S]earch current [W]ord' })
     vim.keymap.set({ 'n', 'x' }, '<leader>sg', live_grep_smart, { desc = '[S]earch by [G]rep' })
+    vim.keymap.set({ 'n', 'x' }, '<leader>sG', search_by_literal_grep, { desc = '[S]earch by literal [G]rep' })
     vim.keymap.set('n', '<leader>sd', builtin.diagnostics, { desc = '[S]earch [D]iagnostics' })
     vim.keymap.set('n', '<leader>sr', builtin.resume, { desc = '[S]earch [R]esume' })
     vim.keymap.set('n', '<leader>s.', builtin.oldfiles, { desc = '[S]earch Recent Files' })

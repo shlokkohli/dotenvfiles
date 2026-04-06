@@ -15,7 +15,6 @@ return {
           'mason',
           'TelescopePrompt',
           'notify',
-          'toggleterm',
         },
         width = 2,
         handlers = {
