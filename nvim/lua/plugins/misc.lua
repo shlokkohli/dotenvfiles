@@ -19,6 +19,7 @@ return {
   {
     -- Hints keybinds
     'folke/which-key.nvim',
+    enabled = false,
   },
   {
     -- Autoclose parentheses, brackets, quotes, etc.

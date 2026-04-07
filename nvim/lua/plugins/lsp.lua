@@ -433,6 +433,10 @@ return {
       location = vue_language_server_path,
       languages = { 'javascript', 'javascriptreact', 'typescript', 'typescriptreact', 'vue' },
     } or nil
+    local function disable_formatting(client)
+      client.server_capabilities.documentFormattingProvider = false
+      client.server_capabilities.documentRangeFormattingProvider = false
+    end
 
     local servers = {
       clangd = {
@@ -481,12 +485,13 @@ return {
           semanticTokensProvider = vim.NIL,
         },
         on_attach = function(client)
-          client.server_capabilities.documentFormattingProvider = false
-          client.server_capabilities.documentRangeFormattingProvider = false
+          disable_formatting(client)
           client.server_capabilities.semanticTokensProvider = nil
         end,
       }, -- tsserver is deprecated
-      vue_ls = {},
+      vue_ls = {
+        on_attach = disable_formatting,
+      },
       biome = {
         -- Only attach in projects that explicitly opt in to Biome
         root_dir = function(bufnr, on_dir)
@@ -513,8 +518,13 @@ return {
           },
         },
       },
-      html = { filetypes = { 'html', 'twig', 'hbs' } },
-      cssls = {},
+      html = {
+        filetypes = { 'html', 'twig', 'hbs' },
+        on_attach = disable_formatting,
+      },
+      cssls = {
+        on_attach = disable_formatting,
+      },
       tailwindcss = {
         root_dir = function(bufnr, on_dir)
           local util = require 'lspconfig.util'

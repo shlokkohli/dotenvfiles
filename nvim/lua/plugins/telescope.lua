@@ -16,9 +16,15 @@ return {
   },
   config = function()
     local Path = require 'plenary.path'
+    local actions = require 'telescope.actions'
+    local action_state = require 'telescope.actions.state'
     local conf = require('telescope.config').values
+    local finders = require 'telescope.finders'
     local from_entry = require 'telescope.from_entry'
+    local make_entry = require 'telescope.make_entry'
+    local pickers = require 'telescope.pickers'
     local previewers = require 'telescope.previewers'
+    local sorters = require 'telescope.sorters'
 
     local function grep_preview_query(opts, status)
       if status and status.picker and status.picker._get_prompt then
@@ -142,6 +148,117 @@ return {
           })
         end,
       }
+    end
+
+    local function current_buffer_literal_find()
+      local literal_substring_sorter = sorters.Sorter:new {
+        discard = true,
+        scoring_function = function(_, prompt, _, entry)
+          if prompt == '' then
+            return 1
+          end
+
+          local needle = prompt
+          local haystack = entry.ordinal or ''
+          if vim.o.ignorecase and not (vim.o.smartcase and prompt:find '%u') then
+            needle = prompt:lower()
+            haystack = haystack:lower()
+          end
+
+          local match_start = haystack:find(needle, 1, true)
+          if not match_start then
+            return -1
+          end
+
+          return match_start
+        end,
+        highlighter = function(_, prompt, display)
+          if prompt == '' then
+            return {}
+          end
+
+          local needle = prompt
+          local haystack = display
+          if vim.o.ignorecase and not (vim.o.smartcase and prompt:find '%u') then
+            needle = prompt:lower()
+            haystack = display:lower()
+          end
+
+          local match_start = haystack:find(needle, 1, true)
+          if not match_start then
+            return {}
+          end
+
+          return {
+            {
+              start = match_start,
+              finish = match_start + #prompt - 1,
+            },
+          }
+        end,
+      }
+
+      local bufnr = vim.api.nvim_get_current_buf()
+      local filename = vim.api.nvim_buf_get_name(bufnr)
+      local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+      local lines_with_numbers = {}
+
+      for lnum, line in ipairs(lines) do
+        table.insert(lines_with_numbers, {
+          lnum = lnum,
+          bufnr = bufnr,
+          filename = filename,
+          text = line,
+        })
+      end
+
+      local opts = require('telescope.themes').get_dropdown {
+        winblend = 10,
+        previewer = false,
+        prompt_title = 'Current Buffer Search',
+      }
+
+      pickers
+        .new(opts, {
+          finder = finders.new_table {
+            results = lines_with_numbers,
+            entry_maker = make_entry.gen_from_buffer_lines(opts),
+          },
+          sorter = literal_substring_sorter,
+          attach_mappings = function(prompt_bufnr)
+            actions.select_default:replace(function()
+              local selection = action_state.get_selected_entry()
+              if not selection then
+                return
+              end
+
+              local prompt = action_state.get_current_line()
+              local line = selection.text or ''
+              local needle = prompt
+              local haystack = line
+
+              if vim.o.ignorecase and not (vim.o.smartcase and prompt:find '%u') then
+                needle = prompt:lower()
+                haystack = line:lower()
+              end
+
+              local col = 0
+              local match_start = haystack:find(needle, 1, true)
+              if match_start then
+                col = match_start - 1
+              end
+
+              actions.close(prompt_bufnr)
+              vim.schedule(function()
+                vim.cmd "normal! m'"
+                vim.api.nvim_win_set_cursor(0, { selection.lnum, col })
+              end)
+            end)
+
+            return true
+          end,
+        })
+        :find()
     end
 
     require('telescope').setup {
@@ -364,12 +481,8 @@ return {
 
     -- Slightly advanced example of overriding default behavior and theme
     vim.keymap.set('n', '<leader>/', function()
-      -- winblend = 10 provides transparency, previewer = false keeps it compact
-      builtin.current_buffer_fuzzy_find(require('telescope.themes').get_dropdown {
-        winblend = 10,
-        previewer = false,
-      })
-    end, { desc = '[/] Fuzzily search in current buffer' })
+      current_buffer_literal_find()
+    end, { desc = '[/] Search in current buffer' })
 
     -- Search specifically in files currently open in buffers
     vim.keymap.set('n', '<leader>s/', function()

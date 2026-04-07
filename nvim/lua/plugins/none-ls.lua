@@ -10,6 +10,37 @@ return {
     local diagnostics = null_ls.builtins.diagnostics
     local util = require 'lspconfig.util'
     local biome_root = util.root_pattern('rome.json', 'biome.json', 'biome.jsonc')
+    local prettier_config_root = util.root_pattern(
+      '.prettierrc',
+      '.prettierrc.json',
+      '.prettierrc.yml',
+      '.prettierrc.yaml',
+      '.prettierrc.json5',
+      '.prettierrc.js',
+      '.prettierrc.cjs',
+      '.prettierrc.mjs',
+      'prettier.config.js',
+      'prettier.config.cjs',
+      'prettier.config.mjs'
+    )
+
+    local function read_json_file(path)
+      if not path or not util.path.exists(path) then
+        return nil
+      end
+
+      local ok, lines = pcall(vim.fn.readfile, path)
+      if not ok then
+        return nil
+      end
+
+      local ok_decode, decoded = pcall(vim.json.decode, table.concat(lines, '\n'))
+      if not ok_decode or type(decoded) ~= 'table' then
+        return nil
+      end
+
+      return decoded
+    end
 
     local function has_eslint_config(dir)
       local config_files = {
@@ -33,6 +64,45 @@ return {
       return util.path.exists(util.path.join(dir, 'node_modules', '.bin', name))
     end
 
+    local function package_uses(dir, name)
+      local package_json = read_json_file(util.path.join(dir, 'package.json'))
+      if not package_json then
+        return false
+      end
+
+      for _, section in ipairs { 'dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies' } do
+        local deps = package_json[section]
+        if type(deps) == 'table' and deps[name] ~= nil then
+          return true
+        end
+      end
+
+      return false
+    end
+
+    local function package_has_prettier_field(dir)
+      local package_json = read_json_file(util.path.join(dir, 'package.json'))
+      return package_json ~= nil and package_json.prettier ~= nil
+    end
+
+    local function find_ancestor_dir(bufname, predicate)
+      local dir = vim.fn.isdirectory(bufname) == 1 and bufname or util.path.dirname(bufname)
+
+      while dir and dir ~= '' do
+        if predicate(dir) then
+          return dir
+        end
+
+        local parent = util.path.dirname(dir)
+        if not parent or parent == dir then
+          break
+        end
+        dir = parent
+      end
+
+      return nil
+    end
+
     local function has_biome(bufname)
       -- Require a biome config file in the project root — just having the
       -- binary installed globally (via Mason) is not enough to opt in.
@@ -41,6 +111,25 @@ return {
         return false
       end
       return vim.fn.executable 'biome' == 1 or has_local_bin(root, 'biome')
+    end
+
+    local function has_prettier(bufname)
+      local config_root = prettier_config_root(bufname)
+      if config_root then
+        return true
+      end
+
+      return find_ancestor_dir(bufname, function(dir)
+        return util.path.exists(util.path.join(dir, 'package.json'))
+          and (package_has_prettier_field(dir) or package_uses(dir, 'prettier') or has_local_bin(dir, 'prettier'))
+      end) ~= nil
+    end
+
+    local function prettier_cwd(bufname)
+      return prettier_config_root(bufname) or find_ancestor_dir(bufname, function(dir)
+        return util.path.exists(util.path.join(dir, 'package.json'))
+          and (package_has_prettier_field(dir) or package_uses(dir, 'prettier') or has_local_bin(dir, 'prettier'))
+      end)
     end
 
     local biome_filetypes = {
@@ -95,10 +184,37 @@ return {
       formatting.clang_format.with { filetypes = { 'c', 'cpp' } },
       formatting.prettier.with {
         filetypes = {
+          'javascript',
+          'javascriptreact',
+          'typescript',
+          'typescriptreact',
+          'json',
+          'jsonc',
+          'css',
+          'graphql',
+        },
+        condition = function(utils)
+          return has_prettier(utils.bufname) and not has_biome(utils.bufname)
+        end,
+        cwd = function(params)
+          return prettier_cwd(params.bufname)
+        end,
+      },
+      formatting.prettier.with {
+        filetypes = {
           'yaml',
           'markdown',
           'html',
+          'vue',
+          'scss',
+          'less',
         },
+        condition = function(utils)
+          return has_prettier(utils.bufname)
+        end,
+        cwd = function(params)
+          return prettier_cwd(params.bufname)
+        end,
       },
       formatting.stylua,
       formatting.shfmt.with { args = { '-i', '4' } },
