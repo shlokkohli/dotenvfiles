@@ -259,7 +259,46 @@ return {
           local ts = get_ts_client(event.buf)
           if not ts then
             if has_definition_client(event.buf) then
-              vim.lsp.buf.definition()
+              -- Request definitions manually so we can deduplicate and jump
+              -- directly instead of always opening a location list.
+              local win = vim.api.nvim_get_current_win()
+              local method = vim.lsp.protocol.Methods.textDocument_definition
+              local lsp_client = vim.iter(vim.lsp.get_clients({ bufnr = event.buf, method = method })):next()
+              if not lsp_client then
+                vim.notify('No LSP client with definition support is attached to this buffer', vim.log.levels.WARN)
+                return
+              end
+              local params = vim.lsp.util.make_position_params(win, lsp_client.offset_encoding)
+              lsp_client:request(method, params, function(err, result)
+                if err or not result or (type(result) == 'table' and vim.tbl_isempty(result)) then
+                  vim.notify('No definition found', vim.log.levels.INFO)
+                  return
+                end
+                -- Normalise to a list
+                local locs = vim.islist(result) and result or { result }
+                -- Deduplicate by uri+line
+                local seen = {}
+                local unique = {}
+                for _, loc in ipairs(locs) do
+                  local uri = loc.uri or loc.targetUri or ''
+                  local range = loc.range or loc.targetSelectionRange or loc.targetRange or {}
+                  local key = uri .. ':' .. (range.start and range.start.line or '')
+                  if not seen[key] then
+                    seen[key] = true
+                    table.insert(unique, loc)
+                  end
+                end
+                if #unique == 1 then
+                  jump_to_location(unique[1], lsp_client.offset_encoding)
+                else
+                  -- Genuinely multiple distinct targets – show quickfix list
+                  vim.fn.setqflist({}, ' ', {
+                    title = 'Definitions',
+                    items = vim.lsp.util.locations_to_items(unique, lsp_client.offset_encoding),
+                  })
+                  vim.cmd 'copen'
+                end
+              end, event.buf)
             else
               vim.notify('No LSP client with definition support is attached to this buffer', vim.log.levels.WARN)
             end
