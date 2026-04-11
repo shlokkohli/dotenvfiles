@@ -83,22 +83,22 @@ return {
             return {
               -- Make gutter line numbers slightly darker for better contrast
               -- against the transparent background without making them too loud.
-              LineNr                   = { fg = colors.surface2 },
-              CursorLineNr             = { fg = colors.blue, bold = true },
-              -- To change the color of the highlighted line, change `surface0` to another color 
+              LineNr = { fg = colors.surface2 },
+              CursorLineNr = { fg = colors.blue, bold = true },
+              -- To change the color of the highlighted line, change `surface0` to another color
               -- from the catppuccin palette like `surface1`, `surface2`, `mantle`, or a hex `#444444`
-              CursorLine               = { bg = colors.surface0 },
-              TelescopeNormal          = { bg = 'NONE' },
-              TelescopePreviewNormal   = { bg = 'NONE' },
-              TelescopePromptNormal    = { bg = 'NONE' },
-              TelescopeResultsNormal   = { bg = 'NONE' },
-              TelescopeBorder          = { bg = 'NONE', fg = colors.blue },
-              TelescopePreviewBorder   = { bg = 'NONE', fg = colors.blue },
-              TelescopePromptBorder    = { bg = 'NONE', fg = colors.blue },
-              TelescopeResultsBorder   = { bg = 'NONE', fg = colors.blue },
-              TelescopePromptPrefix    = { fg = colors.mauve },
-              TelescopeSelectionCaret  = { fg = colors.mauve },
-              TelescopeSelection       = { bg = colors.surface0, bold = true },
+              CursorLine = { bg = colors.mantle },
+              TelescopeNormal = { bg = 'NONE' },
+              TelescopePreviewNormal = { bg = 'NONE' },
+              TelescopePromptNormal = { bg = 'NONE' },
+              TelescopeResultsNormal = { bg = 'NONE' },
+              TelescopeBorder = { bg = 'NONE', fg = colors.blue },
+              TelescopePreviewBorder = { bg = 'NONE', fg = colors.blue },
+              TelescopePromptBorder = { bg = 'NONE', fg = colors.blue },
+              TelescopeResultsBorder = { bg = 'NONE', fg = colors.blue },
+              TelescopePromptPrefix = { fg = colors.mauve },
+              TelescopeSelectionCaret = { fg = colors.mauve },
+              TelescopeSelection = { bg = colors.surface0, bold = true },
             }
           end,
         },

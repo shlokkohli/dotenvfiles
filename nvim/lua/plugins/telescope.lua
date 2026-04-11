@@ -290,6 +290,7 @@ return {
           i = {
             ['<C-k>'] = require('telescope.actions').move_selection_previous, -- move to prev result
             ['<C-j>'] = require('telescope.actions').move_selection_next, -- move to next result
+            ['<leader><leader>'] = require('telescope.actions').close,
             -- Custom select: re-applies cursor AFTER neo-tree/barbar BufEnter callbacks settle
             ['<CR>'] = function(prompt_bufnr)
               local entry = require('telescope.actions.state').get_selected_entry()
@@ -333,6 +334,7 @@ return {
             end,
           },
           n = {
+            ['<leader><leader>'] = require('telescope.actions').close,
             -- Also fix <CR> in Telescope's normal mode
             ['<CR>'] = function(prompt_bufnr)
               local entry = require('telescope.actions.state').get_selected_entry()
