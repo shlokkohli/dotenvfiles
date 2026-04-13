@@ -36,6 +36,7 @@ vim.o.updatetime = 250 -- Decrease update time (default: 4000)
 vim.o.timeoutlen = 300 -- Time to wait for a mapped sequence to complete (in milliseconds) (default: 1000)
 vim.o.backup = false -- Creates a backup file (default: false)
 vim.o.writebackup = false -- If a file is being edited by another program (or was written to file while editing with another program), it is not allowed to be edited (default: true)
+vim.o.autoread = true -- Reload files changed outside Neovim when safe
 vim.o.undofile = false -- Save undo history (default: false)
 vim.o.completeopt = 'menuone,noselect' -- Set completeopt to have a better completion experience (default: 'menu,preview')
 vim.opt.shortmess:append 'c' -- Don't give |ins-completion-menu| messages (default: does not include 'c')
@@ -106,6 +107,16 @@ end, { bang = true, desc = 'Quit all with friendly messages' })
 vim.cmd [[cabbrev W w]]
 vim.cmd [[cabbrev q Q]]
 vim.cmd [[cabbrev qa Qa]]
+
+-- Refresh buffers when files change outside Neovim (for example in VS Code)
+vim.api.nvim_create_autocmd({ 'FocusGained', 'BufEnter', 'CursorHold', 'CursorHoldI', 'TermClose', 'TermLeave' }, {
+  group = vim.api.nvim_create_augroup('auto-reload-on-focus', { clear = true }),
+  callback = function()
+    if vim.fn.mode() ~= 'c' then
+      vim.cmd 'checktime'
+    end
+  end,
+})
 
 -- Auto-detect when buffer content matches the saved file and clear "modified" flag
 -- This lets you :q without errors if you manually revert your changes

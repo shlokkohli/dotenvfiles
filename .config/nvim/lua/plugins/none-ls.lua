@@ -205,6 +205,7 @@ return {
           'yaml',
           'markdown',
           'html',
+          'htmldjango',
           'vue',
           'scss',
           'less',

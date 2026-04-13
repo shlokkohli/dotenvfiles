@@ -558,7 +558,7 @@ return {
         },
       },
       html = {
-        filetypes = { 'html', 'twig', 'hbs' },
+        filetypes = { 'html', 'twig', 'hbs', 'htmldjango' },
         on_attach = disable_formatting,
       },
       cssls = {
@@ -587,7 +587,7 @@ return {
       yamlls = {},
       prismals = {},
       emmet_ls = {
-        filetypes = { 'html', 'css', 'less', 'sass', 'scss' },
+        filetypes = { 'html', 'htmldjango', 'css', 'less', 'sass', 'scss' },
       },
 
       lua_ls = {
@@ -706,14 +706,8 @@ return {
     })
 
     vim.diagnostic.config {
-      -- Show inline text for real errors so syntax issues are obvious even when
-      -- terminal undercurls are subtle or the colorscheme is transparent.
-      virtual_text = {
-        severity = { min = vim.diagnostic.severity.ERROR },
-        spacing = 2,
-        source = 'if_many',
-        prefix = '●',
-      },
+      -- Keep only the red squiggle in the buffer; details still show via K.
+      virtual_text = false,
       virtual_lines = false,
       underline = true,
       signs = {

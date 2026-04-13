@@ -1,4 +1,19 @@
-.env
-/node_modules
-/secrets
-/configstore
+# Ignore everything by default
+*
+.DS_Store
+
+# Un-ignore root dotfiles
+!.gitignore
+!.zshrc
+!.zshenv
+
+# Un-ignore config dirs
+!.config/
+!.config/nvim/
+!.config/nvim/**
+!.config/ghostty/
+!.config/ghostty/**
+!.config/tmux/
+!.config/tmux/**
+!.config/zed/
+!.config/zed/**
