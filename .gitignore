@@ -6,6 +6,7 @@
 !.gitignore
 !.zshrc
 !.zshenv
+!Readme.md
 
 # Un-ignore config dirs
 !.config/
