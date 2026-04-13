@@ -12,7 +12,7 @@
       "provider": "zed.dev",
       "model": "claude-sonnet-4-6",
       "enable_thinking": true,
-      "effort": "max"
+      "effort": "high"
     },
     "favorite_models": [],
     "model_parameters": []
