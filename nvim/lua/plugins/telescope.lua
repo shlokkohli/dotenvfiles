@@ -288,6 +288,7 @@ return {
         },
         mappings = {
           i = {
+            ['<C-u>'] = false,
             ['<C-k>'] = require('telescope.actions').move_selection_previous, -- move to prev result
             ['<C-j>'] = require('telescope.actions').move_selection_next, -- move to next result
             ['<leader><leader>'] = require('telescope.actions').close,
