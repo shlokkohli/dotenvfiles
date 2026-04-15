@@ -150,7 +150,7 @@ return {
       }
     end
 
-    local function current_buffer_literal_find()
+    local function current_buffer_literal_find(default_text, full_size)
       local literal_substring_sorter = sorters.Sorter:new {
         discard = true,
         scoring_function = function(_, prompt, _, entry)
@@ -212,17 +212,27 @@ return {
         })
       end
 
-      local opts = require('telescope.themes').get_dropdown {
-        winblend = 10,
-        previewer = false,
+      local picker_opts = {
+        default_text = default_text and default_text ~= '' and default_text or nil,
         prompt_title = 'Current Buffer Search',
       }
 
+      if full_size then
+        picker_opts.previewer = literal_grep_previewer {
+          default_text = default_text,
+        }
+      else
+        picker_opts = require('telescope.themes').get_dropdown(vim.tbl_extend('force', picker_opts, {
+          winblend = 10,
+          previewer = false,
+        }))
+      end
+
       pickers
-        .new(opts, {
+        .new(picker_opts, {
           finder = finders.new_table {
             results = lines_with_numbers,
-            entry_maker = make_entry.gen_from_buffer_lines(opts),
+            entry_maker = make_entry.gen_from_buffer_lines(picker_opts),
           },
           sorter = literal_substring_sorter,
           attach_mappings = function(prompt_bufnr)
@@ -390,13 +400,10 @@ return {
     -- See `:help telescope.builtin`
     local builtin = require 'telescope.builtin'
 
-    local function live_grep_current_word()
+    local function search_current_word_in_buffer()
       local word = vim.fn.expand '<cword>'
 
-      builtin.live_grep {
-        default_text = word ~= '' and word or nil,
-        prompt_title = word ~= '' and ('Search: ' .. word) or 'Live Grep',
-      }
+      current_buffer_literal_find(word, true)
     end
 
     local function literal_grep(search, opts)
@@ -490,7 +497,7 @@ return {
     vim.keymap.set('n', '<leader>sr', builtin.resume, { desc = '[S]earch [R]esume' })
     vim.keymap.set('n', '<leader>s.', builtin.oldfiles, { desc = '[S]earch Recent Files' })
     vim.keymap.set('n', '<leader>sb', builtin.buffers, { desc = '[S]earch [B]uffers' })
-    vim.keymap.set('n', '<leader><leader>', live_grep_current_word, { desc = 'Search current word' })
+    vim.keymap.set('n', '<leader><leader>', search_current_word_in_buffer, { desc = 'Search current word in buffer' })
 
     -- Slightly advanced example of overriding default behavior and theme
     vim.keymap.set('n', '<leader>/', function()
