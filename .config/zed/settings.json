@@ -10,9 +10,8 @@
   "agent": {
     "default_model": {
       "provider": "zed.dev",
-      "model": "claude-sonnet-4-6",
-      "enable_thinking": true,
-      "effort": "high"
+      "model": "gemini-3.1-pro-preview",
+      "enable_thinking": false
     },
     "favorite_models": [],
     "model_parameters": []

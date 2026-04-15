@@ -390,6 +390,15 @@ return {
     -- See `:help telescope.builtin`
     local builtin = require 'telescope.builtin'
 
+    local function live_grep_current_word()
+      local word = vim.fn.expand '<cword>'
+
+      builtin.live_grep {
+        default_text = word ~= '' and word or nil,
+        prompt_title = word ~= '' and ('Search: ' .. word) or 'Live Grep',
+      }
+    end
+
     local function literal_grep(search, opts)
       if not search or search == '' then
         return
@@ -480,7 +489,8 @@ return {
     vim.keymap.set('n', '<leader>sd', builtin.diagnostics, { desc = '[S]earch [D]iagnostics' })
     vim.keymap.set('n', '<leader>sr', builtin.resume, { desc = '[S]earch [R]esume' })
     vim.keymap.set('n', '<leader>s.', builtin.oldfiles, { desc = '[S]earch Recent Files' })
-    vim.keymap.set('n', '<leader><leader>', builtin.buffers, { desc = '[ ] Find existing buffers' })
+    vim.keymap.set('n', '<leader>sb', builtin.buffers, { desc = '[S]earch [B]uffers' })
+    vim.keymap.set('n', '<leader><leader>', live_grep_current_word, { desc = 'Search current word' })
 
     -- Slightly advanced example of overriding default behavior and theme
     vim.keymap.set('n', '<leader>/', function()

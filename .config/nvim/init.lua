@@ -30,6 +30,7 @@ require('lazy').setup {
   require 'plugins.barbar',
   require 'plugins.lualine',
   require 'plugins.treesitter',
+  require 'plugins.surround',
   require 'plugins.telescope',
   require 'plugins.lsp',
   require 'plugins.autocompletion',
