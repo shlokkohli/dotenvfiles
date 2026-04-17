@@ -61,9 +61,9 @@ vim.keymap.set({ 'n', 'v' }, '_D', 'D', { noremap = true, silent = true })
 vim.keymap.set({ 'n', 'v' }, 'c', '"_c', { noremap = true, silent = true })
 vim.keymap.set({ 'n', 'v' }, 'C', '"_C', { noremap = true, silent = true })
 
--- normal and visual mode: _c = cut + change (yank + change)
-vim.keymap.set({ 'n', 'v' }, '_c', 'c', { noremap = true, silent = true })
-vim.keymap.set({ 'n', 'v' }, '_C', 'C', { noremap = true, silent = true })
+-- normal and visual mode: _c = cut to clipboard + change
+vim.keymap.set({ 'n', 'v' }, '_c', '"+c', { noremap = true, silent = true })
+vim.keymap.set({ 'n', 'v' }, '_C', '"+C', { noremap = true, silent = true })
 
 -- visual mode: y = yank without moving cursor
 vim.keymap.set({ 'v', 'x' }, 'y', 'ygv<Esc>', { noremap = true, silent = true, desc = 'Yank without moving cursor' })

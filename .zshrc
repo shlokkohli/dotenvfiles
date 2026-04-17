@@ -59,6 +59,3 @@ zle -N _accept_or_complete
 bindkey '\t' _accept_or_complete
 # Added by Antigravity
 export PATH="/Users/shlok/.antigravity/antigravity/bin:$PATH"
-
-# Added by Antigravity
-export PATH="/Users/shlok/.antigravity/antigravity/bin:$PATH"
