@@ -3,6 +3,7 @@ vim.o.relativenumber = true -- Set relative numbered lines (default: false)
 vim.o.clipboard = 'unnamedplus' -- Sync clipboard between OS and Neovim. (default: '')
 vim.o.wrap = false -- Display lines as one long line (default: true)
 vim.o.linebreak = true -- Companion to wrap, don't split words (default: false)
+vim.o.breakindent = true -- Enable break indent (default: false)
 vim.o.mouse = 'a' -- Enable mouse mode (default: '')
 vim.o.autoindent = true -- Copy indent from current line when starting new one (default: true)
 vim.o.ignorecase = true -- Case-insensitive searching UNLESS \C or capital in search (default: false)
@@ -31,7 +32,6 @@ vim.o.conceallevel = 0 -- So that `` is visible in markdown files (default: 1)
 vim.opt.signcolumn = 'yes' -- Keep signcolumn on by default (default: 'auto')
 vim.o.fileencoding = 'utf-8' -- The encoding written to a file (default: 'utf-8')
 vim.o.cmdheight = 0 -- No command line area, statusline sticks to the bottom
-vim.o.breakindent = true -- Enable break indent (default: false)
 vim.o.updatetime = 250 -- Decrease update time (default: 4000)
 vim.o.timeoutlen = 300 -- Time to wait for a mapped sequence to complete (in milliseconds) (default: 1000)
 vim.o.backup = false -- Creates a backup file (default: false)
@@ -72,7 +72,7 @@ vim.o.titlestring = '%{fnamemodify(getcwd(), ":t")}' -- Show only the folder nam
 vim.api.nvim_create_user_command('Q', function(opts)
   local ok, err = pcall(vim.cmd, 'q' .. (opts.bang and '!' or ''))
   if not ok then
-    if err:match('E37') or err:match('E162') then
+    if err:match 'E37' or err:match 'E162' then
       vim.notify(
         ' You have unsaved changes!\n'
           .. '  :wq  → save and quit\n'
@@ -90,13 +90,8 @@ end, { bang = true, desc = 'Quit with friendly messages' })
 vim.api.nvim_create_user_command('Qa', function(opts)
   local ok, err = pcall(vim.cmd, 'qa' .. (opts.bang and '!' or ''))
   if not ok then
-    if err:match('E37') or err:match('E162') then
-      vim.notify(
-        ' You have unsaved files!\n'
-          .. '  :wqa → save all and quit\n'
-          .. '  :qa! → discard all changes and quit',
-        vim.log.levels.WARN
-      )
+    if err:match 'E37' or err:match 'E162' then
+      vim.notify(' You have unsaved files!\n' .. '  :wqa → save all and quit\n' .. '  :qa! → discard all changes and quit', vim.log.levels.WARN)
     else
       vim.notify(err, vim.log.levels.ERROR)
     end
@@ -159,7 +154,7 @@ vim.filetype.add {
     ['.env'] = 'sh',
   },
   pattern = {
-    ['.*%.env%..*'] = 'sh',  -- .env.local, .env.staging, etc.
+    ['.*%.env%..*'] = 'sh', -- .env.local, .env.staging, etc.
   },
 }
 
