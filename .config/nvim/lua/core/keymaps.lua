@@ -68,6 +68,48 @@ vim.keymap.set({ 'n', 'v' }, '_C', '"+C', { noremap = true, silent = true })
 -- visual mode: y = yank without moving cursor
 vim.keymap.set({ 'v', 'x' }, 'y', 'ygv<Esc>', { noremap = true, silent = true, desc = 'Yank without moving cursor' })
 
+local function flash_copied_filename()
+  local bufferline_groups = {
+    'BufferCurrent',
+    'BufferCurrentIndex',
+    'BufferCurrentMod',
+    'BufferCurrentSign',
+    'BufferCurrentIcon',
+  }
+  local original_highlights = {}
+
+  for _, group in ipairs(bufferline_groups) do
+    local ok, highlight = pcall(vim.api.nvim_get_hl, 0, { name = group, link = false })
+    original_highlights[group] = ok and highlight or nil
+    pcall(vim.api.nvim_set_hl, 0, group, { link = 'IncSearch' })
+  end
+
+  vim.g.copied_filename_flash = true
+  pcall(function()
+    require('lualine').refresh()
+  end)
+  vim.cmd.redrawtabline()
+
+  vim.defer_fn(function()
+    for _, group in ipairs(bufferline_groups) do
+      pcall(vim.api.nvim_set_hl, 0, group, original_highlights[group] or {})
+    end
+
+    vim.g.copied_filename_flash = false
+    pcall(function()
+      require('lualine').refresh()
+    end)
+    vim.cmd.redrawtabline()
+  end, 180)
+end
+
+vim.keymap.set('n', '<leader>yf', function()
+  local filename = vim.fn.expand '%:t'
+  vim.fn.setreg('+', filename)
+  flash_copied_filename()
+  vim.notify('Copied file name: ' .. filename)
+end, { desc = 'Copy current file name' })
+
 -- save file
 
 -- save file without auto-formatting
@@ -120,6 +162,12 @@ local function buffer_prev_maybe_restore_visual()
   mark_restore_visual_if_needed()
   vim.cmd.BufferPrevious()
 end
+local function buffer_goto_maybe_restore_visual(index)
+  return function()
+    mark_restore_visual_if_needed()
+    vim.cmd.BufferGoto(index)
+  end
+end
 local restore_visual_au = vim.api.nvim_create_augroup('buffer-restore-visual', { clear = true })
 vim.api.nvim_create_autocmd('BufEnter', {
   group = restore_visual_au,
@@ -147,6 +195,8 @@ vim.api.nvim_create_autocmd('BufDelete', {
 -- Buffers
 vim.keymap.set('n', '<Tab>', '<Cmd>BufferNext<CR>', opts)
 vim.keymap.set('n', '<S-Tab>', '<Cmd>BufferPrevious<CR>', opts)
+vim.keymap.set('v', '<Tab>', buffer_next_maybe_restore_visual, opts)
+vim.keymap.set('v', '<S-Tab>', buffer_prev_maybe_restore_visual, opts)
 vim.keymap.set('n', '<leader>b', '<cmd> enew <CR>', opts) -- new buffer
 vim.keymap.set('n', '<leader>x', '<Cmd>BufferClose<CR>', opts)
 
@@ -176,6 +226,11 @@ vim.keymap.set('n', '\x1b[9;5u', '<Cmd>BufferNext<CR>', opts)
 vim.keymap.set('n', '\x1b[9;6u', '<Cmd>BufferPrevious<CR>', opts)
 vim.keymap.set('v', '\x1b[9;5u', buffer_next_maybe_restore_visual, opts)
 vim.keymap.set('v', '\x1b[9;6u', buffer_prev_maybe_restore_visual, opts)
+-- Ghostty custom sequences from ~/.config/ghostty/config
+vim.keymap.set('n', '\x1b[27;5;9~', '<Cmd>BufferNext<CR>', opts)
+vim.keymap.set('n', '\x1b[27;6;9~', '<Cmd>BufferPrevious<CR>', opts)
+vim.keymap.set('v', '\x1b[27;5;9~', buffer_next_maybe_restore_visual, opts)
+vim.keymap.set('v', '\x1b[27;6;9~', buffer_prev_maybe_restore_visual, opts)
 -- Ghostty Ctrl+1-9 → BufferGoto (kitty protocol: ASCII code of digit + ;5u)
 vim.keymap.set('n', '\x1b[49;5u', '<Cmd>BufferGoto 1<CR>', opts)
 vim.keymap.set('n', '\x1b[50;5u', '<Cmd>BufferGoto 2<CR>', opts)
@@ -186,6 +241,15 @@ vim.keymap.set('n', '\x1b[54;5u', '<Cmd>BufferGoto 6<CR>', opts)
 vim.keymap.set('n', '\x1b[55;5u', '<Cmd>BufferGoto 7<CR>', opts)
 vim.keymap.set('n', '\x1b[56;5u', '<Cmd>BufferGoto 8<CR>', opts)
 vim.keymap.set('n', '\x1b[57;5u', '<Cmd>BufferGoto 9<CR>', opts)
+vim.keymap.set('v', '\x1b[49;5u', buffer_goto_maybe_restore_visual(1), opts)
+vim.keymap.set('v', '\x1b[50;5u', buffer_goto_maybe_restore_visual(2), opts)
+vim.keymap.set('v', '\x1b[51;5u', buffer_goto_maybe_restore_visual(3), opts)
+vim.keymap.set('v', '\x1b[52;5u', buffer_goto_maybe_restore_visual(4), opts)
+vim.keymap.set('v', '\x1b[53;5u', buffer_goto_maybe_restore_visual(5), opts)
+vim.keymap.set('v', '\x1b[54;5u', buffer_goto_maybe_restore_visual(6), opts)
+vim.keymap.set('v', '\x1b[55;5u', buffer_goto_maybe_restore_visual(7), opts)
+vim.keymap.set('v', '\x1b[56;5u', buffer_goto_maybe_restore_visual(8), opts)
+vim.keymap.set('v', '\x1b[57;5u', buffer_goto_maybe_restore_visual(9), opts)
 
 -- Toggle line wrapping
 vim.keymap.set('n', '<leader>lw', '<cmd>set wrap!<CR>', opts)
@@ -254,6 +318,8 @@ vim.keymap.set('n', '<A-,>', '<Cmd>BufferPrevious<CR>', { silent = true })
 vim.keymap.set('n', '<A-.>', '<Cmd>BufferNext<CR>', { silent = true })
 vim.keymap.set('n', '<A-<>', '<Cmd>BufferMovePrevious<CR>', { silent = true })
 vim.keymap.set('n', '<A->>', '<Cmd>BufferMoveNext<CR>', { silent = true })
+vim.keymap.set('v', '<A-,>', buffer_prev_maybe_restore_visual, { silent = true })
+vim.keymap.set('v', '<A-.>', buffer_next_maybe_restore_visual, { silent = true })
 vim.keymap.set('n', '<C-1>', '<Cmd>BufferGoto 1<CR>', { silent = true })
 vim.keymap.set('n', '<C-2>', '<Cmd>BufferGoto 2<CR>', { silent = true })
 vim.keymap.set('n', '<C-3>', '<Cmd>BufferGoto 3<CR>', { silent = true })
@@ -263,6 +329,15 @@ vim.keymap.set('n', '<C-6>', '<Cmd>BufferGoto 6<CR>', { silent = true })
 vim.keymap.set('n', '<C-7>', '<Cmd>BufferGoto 7<CR>', { silent = true })
 vim.keymap.set('n', '<C-8>', '<Cmd>BufferGoto 8<CR>', { silent = true })
 vim.keymap.set('n', '<C-9>', '<Cmd>BufferGoto 9<CR>', { silent = true })
+vim.keymap.set('v', '<C-1>', buffer_goto_maybe_restore_visual(1), { silent = true })
+vim.keymap.set('v', '<C-2>', buffer_goto_maybe_restore_visual(2), { silent = true })
+vim.keymap.set('v', '<C-3>', buffer_goto_maybe_restore_visual(3), { silent = true })
+vim.keymap.set('v', '<C-4>', buffer_goto_maybe_restore_visual(4), { silent = true })
+vim.keymap.set('v', '<C-5>', buffer_goto_maybe_restore_visual(5), { silent = true })
+vim.keymap.set('v', '<C-6>', buffer_goto_maybe_restore_visual(6), { silent = true })
+vim.keymap.set('v', '<C-7>', buffer_goto_maybe_restore_visual(7), { silent = true })
+vim.keymap.set('v', '<C-8>', buffer_goto_maybe_restore_visual(8), { silent = true })
+vim.keymap.set('v', '<C-9>', buffer_goto_maybe_restore_visual(9), { silent = true })
 vim.keymap.set('n', '<A-0>', '<Cmd>BufferLast<CR>', { silent = true })
 vim.keymap.set('n', '<A-c>', '<Cmd>BufferClose<CR>', { silent = true })
 vim.keymap.set('n', '<leader>u', '<Cmd>BufferRestore<CR>', { silent = true })
@@ -346,3 +421,235 @@ end
 vim.keymap.set('n', 'vab', smart_around_bracket, { desc = 'Select around nearest bracket', silent = true })
 vim.keymap.set('x', 'ab', smart_around_bracket, { desc = 'Expand selection to around nearest bracket', silent = true })
 vim.keymap.set('o', 'ab', smart_around_bracket, { desc = 'Around nearest bracket (operator pending)', silent = true })
+
+local function node_type_matches_function(node)
+  local node_type = node:type()
+  return node_type:find('function', 1, true) ~= nil
+    or node_type:find('method', 1, true) ~= nil
+    or node_type == 'arrow_function'
+    or node_type == 'lambda'
+    or node_type == 'closure_expression'
+end
+
+local function get_function_node()
+  local ok, node = pcall(vim.treesitter.get_node)
+  if not ok then
+    node = nil
+  end
+
+  if not node then
+    local parser_ok, parser = pcall(vim.treesitter.get_parser, 0)
+    if not parser_ok or not parser then
+      return nil
+    end
+
+    local cursor = vim.api.nvim_win_get_cursor(0)
+    local row = cursor[1] - 1
+    local col = cursor[2]
+    local tree = parser:parse()[1]
+    node = tree and tree:root():named_descendant_for_range(row, col, row, col)
+  end
+
+  while node do
+    if node_type_matches_function(node) then
+      return node
+    end
+    node = node:parent()
+  end
+
+  return nil
+end
+
+local function trim_range(start_row, start_col, end_row, end_col)
+  local lines = vim.api.nvim_buf_get_lines(0, start_row, end_row + 1, false)
+  if #lines == 0 then
+    return start_row, start_col, end_row, end_col
+  end
+
+  while #lines > 0 and lines[1]:match('^%s*$') do
+    start_row = start_row + 1
+    table.remove(lines, 1)
+    start_col = 0
+  end
+
+  while #lines > 0 and lines[#lines]:match('^%s*$') do
+    end_row = end_row - 1
+    table.remove(lines)
+    end_col = #(lines[#lines] or '')
+  end
+
+  if #lines == 0 then
+    return start_row, start_col, end_row, end_col
+  end
+
+  local first_indent = lines[1]:sub(start_col + 1):match('^%s*') or ''
+  start_col = start_col + #first_indent
+
+  local last_content_end = lines[#lines]:match('^.*%S()')
+  if last_content_end then
+    end_col = last_content_end - 1
+  end
+
+  return start_row, start_col, end_row, end_col
+end
+
+local function inclusive_end_position(row, col)
+  if col > 0 then
+    return row, col
+  end
+
+  if row == 0 then
+    return row, col
+  end
+
+  local previous_line = vim.api.nvim_buf_get_lines(0, row - 1, row, false)[1] or ''
+  return row - 1, #previous_line
+end
+
+local function select_range(start_row, start_col, end_row, end_col)
+  end_row, end_col = inclusive_end_position(end_row, end_col)
+
+  if end_row < start_row or (end_row == start_row and end_col < start_col) then
+    return
+  end
+
+  vim.fn.setpos('.', { 0, start_row + 1, start_col + 1, 0 })
+  vim.cmd('normal! v')
+  vim.fn.setpos('.', { 0, end_row + 1, end_col, 0 })
+end
+
+local function python_def_indent(line)
+  return line:match('^(%s*)async%s+def%s+') or line:match('^(%s*)def%s+')
+end
+
+local function leading_whitespace(line)
+  return line:match('^%s*') or ''
+end
+
+local function select_python_function(inner)
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  local cursor_row = cursor[1] - 1
+  local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+  local start_row = nil
+  local def_indent = nil
+
+  for row = cursor_row, 0, -1 do
+    local indent = python_def_indent(lines[row + 1] or '')
+    if indent then
+      start_row = row
+      def_indent = indent
+      break
+    end
+  end
+
+  if not start_row then
+    return false
+  end
+
+  local end_row = #lines - 1
+  local last_content_row = start_row
+
+  for row = start_row + 1, #lines - 1 do
+    local line = lines[row + 1] or ''
+    if line:match('%S') then
+      local indent = leading_whitespace(line)
+      if #indent <= #def_indent then
+        end_row = math.max(start_row, row - 1)
+        break
+      end
+      last_content_row = row
+    end
+  end
+
+  if inner then
+    start_row = start_row + 1
+    while start_row <= end_row and not (lines[start_row + 1] or ''):match('%S') do
+      start_row = start_row + 1
+    end
+
+    end_row = last_content_row
+    while end_row >= start_row and not (lines[end_row + 1] or ''):match('%S') do
+      end_row = end_row - 1
+    end
+  end
+
+  if end_row < start_row then
+    return false
+  end
+
+  local start_col = inner and #leading_whitespace(lines[start_row + 1] or '') or 0
+  local end_col = #(lines[end_row + 1] or '')
+  select_range(start_row, start_col, end_row, end_col)
+  return true
+end
+
+local function function_body_node(function_node)
+  local ok, body = pcall(function()
+    return function_node:field('body')[1]
+  end)
+
+  if ok and body then
+    return body
+  end
+
+  for child in function_node:iter_children() do
+    local node_type = child:type()
+    if node_type:find('block', 1, true) or node_type == 'body' then
+      return child
+    end
+  end
+
+  return nil
+end
+
+local function select_function(inner)
+  local function_node = get_function_node()
+  if not function_node then
+    if vim.bo.filetype == 'python' and select_python_function(inner) then
+      return
+    end
+
+    vim.notify('No Treesitter function found under cursor', vim.log.levels.INFO)
+    return
+  end
+
+  local start_row, start_col, end_row, end_col = function_node:range()
+
+  if inner then
+    local body = function_body_node(function_node)
+    if body then
+      start_row, start_col, end_row, end_col = body:range()
+
+      local first_line = vim.api.nvim_buf_get_lines(0, start_row, start_row + 1, false)[1] or ''
+      local last_line = vim.api.nvim_buf_get_lines(0, end_row, end_row + 1, false)[1] or ''
+
+      if first_line:sub(start_col + 1, start_col + 1) == '{' then
+        start_col = start_col + 1
+      end
+
+      if end_col > 0 and last_line:sub(end_col, end_col) == '}' then
+        end_col = end_col - 1
+      end
+
+      start_row, start_col, end_row, end_col = trim_range(start_row, start_col, end_row, end_col)
+    end
+  end
+
+  select_range(start_row, start_col, end_row, end_col)
+end
+
+vim.keymap.set({ 'x', 'o' }, 'af', function()
+  select_function(false)
+end, { desc = 'Around function', silent = true })
+
+vim.keymap.set({ 'x', 'o' }, 'if', function()
+  select_function(true)
+end, { desc = 'Inside function', silent = true })
+
+vim.keymap.set('n', 'vaf', function()
+  select_function(false)
+end, { desc = 'Select around function', silent = true })
+
+vim.keymap.set('n', 'vif', function()
+  select_function(true)
+end, { desc = 'Select inside function', silent = true })

@@ -10,10 +10,17 @@ return {
       end,
     }
 
+    local colors = require('catppuccin.palettes').get_palette('macchiato')
+
     local filename = {
       'filename',
       file_status = true, -- displays file status (readonly status, modified status)
-      path = 2, -- 0 = just filename, 1 = relative path, 2 = absolute path
+      path = 1, -- show path relative to the current working directory
+      color = function()
+        if vim.g.copied_filename_flash then
+          return { fg = colors.base, bg = colors.yellow, gui = 'bold' }
+        end
+      end,
     }
 
     local hide_in_width = function()
@@ -39,8 +46,7 @@ return {
     }
 
     local custom_theme = require('catppuccin.utils.lualine')()
-    local colors = require('catppuccin.palettes').get_palette('macchiato')
-    
+
     -- Change the background of the middle section to differentiate it from the editor
     custom_theme.normal.c.bg = colors.mantle
     custom_theme.inactive.c.bg = colors.mantle

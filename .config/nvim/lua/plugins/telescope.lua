@@ -25,6 +25,7 @@ return {
     local pickers = require 'telescope.pickers'
     local previewers = require 'telescope.previewers'
     local sorters = require 'telescope.sorters'
+    local utils = require 'telescope.utils'
 
     local function grep_preview_query(opts, status)
       if status and status.picker and status.picker._get_prompt then
@@ -44,16 +45,18 @@ return {
     end
 
     local function grep_preview_pattern(query)
-      if not query or query == '' or query:find('\n', 1, true) then
+      if not query or query == '' then
         return nil
       end
+
+      query = query:gsub('\\n', '\n')
 
       local case_prefix = ''
       if vim.o.ignorecase then
         case_prefix = (vim.o.smartcase and query:find('%u')) and '\\C' or '\\c'
       end
 
-      return case_prefix .. '\\V' .. query:gsub('\\', '\\\\')
+      return case_prefix .. '\\V' .. query:gsub('\\', '\\\\'):gsub('\n', '\\n')
     end
 
     local function literal_grep_previewer(opts)
@@ -433,6 +436,182 @@ return {
       }
     end
 
+    local function search_text_from_prompt(prompt)
+      if not prompt or prompt == '' then
+        return nil
+      end
+
+      return prompt:gsub('\\n', '\n')
+    end
+
+    local function multiline_prompt_text(text)
+      text = text and text:gsub('[\r\n]+$', '') or ''
+      if text == '' then
+        return ''
+      end
+
+      return table.concat(vim.split(text, '\n', { plain = true }), '\\n')
+    end
+
+    local function paste_multiline_search(prompt_bufnr)
+      local clipboard = vim.fn.getreg '+'
+      if not clipboard or clipboard == '' then
+        return
+      end
+
+      local picker = action_state.get_current_picker(prompt_bufnr)
+      picker:set_prompt(multiline_prompt_text(clipboard))
+    end
+
+    local function install_multiline_paste_handler(prompt_bufnr)
+      local original_paste = vim.paste
+      local paste_chunks = {}
+
+      local paste_handler
+      paste_handler = function(lines, phase)
+        if vim.api.nvim_get_current_buf() ~= prompt_bufnr then
+          return original_paste(lines, phase)
+        end
+
+        local text = table.concat(lines, '\n')
+        if phase == 1 then
+          paste_chunks = { text }
+          return true
+        end
+
+        if phase == 2 then
+          table.insert(paste_chunks, text)
+          return true
+        end
+
+        if phase == 3 then
+          table.insert(paste_chunks, text)
+          text = table.concat(paste_chunks)
+          paste_chunks = {}
+        end
+
+        if not text:find('\n', 1, true) then
+          return original_paste({ text }, -1)
+        end
+
+        local picker = action_state.get_current_picker(prompt_bufnr)
+        local prompt = picker:_get_prompt()
+        picker:set_prompt(prompt .. multiline_prompt_text(text))
+        return true
+      end
+      vim.paste = paste_handler
+
+      vim.api.nvim_create_autocmd({ 'BufWipeout', 'BufDelete' }, {
+        buffer = prompt_bufnr,
+        once = true,
+        callback = function()
+          if vim.paste == paste_handler then
+            vim.paste = original_paste
+          end
+        end,
+      })
+    end
+
+    local function live_grep_multiline(opts)
+      opts = opts or {}
+      opts.cwd = opts.cwd or vim.uv.cwd()
+
+      local function make_json_grep_entry(line)
+        local ok, item = pcall(vim.json.decode, line)
+        if not ok or not item or item.type ~= 'match' then
+          return nil
+        end
+
+        local data = item.data or {}
+        local path = data.path and data.path.text
+        if not path then
+          return nil
+        end
+
+        local text = data.lines and data.lines.text or ''
+        text = text:gsub('[\r\n]+$', '')
+        local display_text = text:gsub('\n', '\\n')
+        local submatch = data.submatches and data.submatches[1]
+        local col = submatch and submatch.start and submatch.start + 1 or 1
+        local absolute_path = Path:new(path):is_absolute() and path or Path:new({ opts.cwd, path }):absolute()
+
+        return make_entry.set_default_entry_mt({
+          value = line,
+          ordinal = path .. ':' .. display_text,
+          display = function(entry)
+            local display_filename, path_style = utils.transform_path(opts, entry.display_filename)
+            local display, hl_group, icon = utils.transform_devicons(
+              entry.display_filename,
+              string.format('%s:%s:%s:%s', display_filename, entry.lnum, entry.col, entry.text),
+              opts.disable_devicons
+            )
+
+            if hl_group then
+              local style = { { { 0, #icon }, hl_group } }
+              style = utils.merge_styles(style, path_style, #icon + 1)
+              return display, style
+            end
+
+            return display, path_style
+          end,
+          display_filename = path,
+          filename = absolute_path,
+          path = absolute_path,
+          lnum = data.line_number,
+          col = col,
+          text = display_text,
+        })
+      end
+
+      local vimgrep_arguments = opts.vimgrep_arguments or conf.vimgrep_arguments
+      local base_args = vim.deepcopy(vimgrep_arguments)
+      vim.list_extend(base_args, {
+        '--hidden',
+        '--glob', '!**/node_modules/**',
+        '--glob', '!**/generated/**',
+        '--glob', '!.git/**',
+        '--glob', '!.venv/**',
+      })
+
+      opts.__inverted = false
+      opts.__matches = false
+
+      local live_grepper = finders.new_job(function(prompt)
+        local search = search_text_from_prompt(prompt)
+        if not search then
+          return nil
+        end
+
+        local args = vim.deepcopy(base_args)
+        if search:find('\n', 1, true) then
+          table.insert(args, 2, '--multiline')
+        end
+        table.insert(args, 2, '--json')
+
+        vim.list_extend(args, { '--', search })
+        return args
+      end, opts.entry_maker or make_json_grep_entry, opts.max_results, opts.cwd)
+
+      pickers
+        .new(opts, {
+          prompt_title = 'Live Grep',
+          finder = live_grepper,
+          previewer = conf.grep_previewer(opts),
+          sorter = sorters.highlighter_only(opts),
+          attach_mappings = function(prompt_bufnr, map)
+            install_multiline_paste_handler(prompt_bufnr)
+            map('i', '<C-space>', actions.to_fuzzy_refine)
+            map('i', '<C-v>', paste_multiline_search)
+            map('i', '<D-v>', paste_multiline_search)
+            map('i', '<C-r>+', paste_multiline_search)
+            map('i', '<C-r>*', paste_multiline_search)
+            return true
+          end,
+          push_cursor_on_edit = true,
+        })
+        :find()
+    end
+
     local function get_visual_selection()
       local save_v = vim.fn.getreg 'v'
       vim.cmd [[noautocmd sil norm! "vy]]
@@ -441,8 +620,8 @@ return {
       return text
     end
 
-    -- Live grep's prompt is single-line only, so multi-line clipboard/selection cannot
-    -- be the full pattern. Use grep_string + ripgrep --multiline for that case.
+    -- Telescope prompts are single-line, so show pasted newlines as \n while
+    -- sending real newlines to ripgrep with --multiline.
     local function live_grep_smart()
       local mode = vim.fn.mode()
       if mode == 'v' or mode == 'V' or mode == '\22' then
@@ -452,18 +631,16 @@ return {
         local lines = vim.fn.split(trimmed, '\n', true)
 
         if #lines > 1 and trimmed ~= '' then
-          literal_grep(trimmed, {
-            prompt_title = 'Grep multiline',
-            multiline = true,
-          })
+          live_grep_multiline {
+            default_text = multiline_prompt_text(trimmed),
+          }
         else
-          builtin.live_grep {
-            default_text = trimmed ~= '' and trimmed or nil,
+          live_grep_multiline {
+            default_text = trimmed ~= '' and multiline_prompt_text(trimmed) or nil,
           }
         end
       else
-        -- Normal mode: just open a clean live grep
-        builtin.live_grep()
+        live_grep_multiline()
       end
     end
 
