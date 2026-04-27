@@ -132,8 +132,25 @@ vim.keymap.set('n', '<C-u>', '<C-u>zz', opts)
 vim.keymap.set('n', 'n', 'nzzzv', opts)
 vim.keymap.set('n', 'N', 'Nzzzv', opts)
 
--- Go to middle of text line
-vim.keymap.set({ 'n', 'x' }, 'gm', 'gM', { desc = 'Go to middle of text line', noremap = true })
+local function go_to_line_percent(percent)
+  local first_code_column = math.max(1, vim.fn.indent('.') + 1)
+  local line_width = math.max(first_code_column, vim.fn.virtcol('$') - 1)
+  local code_width = math.max(1, line_width - first_code_column + 1)
+  local column = first_code_column + math.floor(code_width * percent)
+  vim.cmd('normal! ' .. column .. '|')
+end
+
+vim.keymap.set({ 'n', 'x' }, 'gm', function()
+  go_to_line_percent(0.5)
+end, { desc = 'Go to middle of text line', noremap = true })
+
+vim.keymap.set({ 'n', 'x' }, 'gq', function()
+  go_to_line_percent(0.25)
+end, { desc = 'Go to 25% of text line', noremap = true })
+
+vim.keymap.set({ 'n', 'x' }, 'gqq', function()
+  go_to_line_percent(0.75)
+end, { desc = 'Go to 75% of text line', noremap = true })
 
 -- Swap zero and caret (0 goes to first word, ^ goes to column 0)
 vim.keymap.set({ 'n', 'v', 'o' }, '0', '^', { desc = 'Go to first non-blank character', noremap = true })

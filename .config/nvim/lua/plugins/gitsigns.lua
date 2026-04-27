@@ -145,6 +145,43 @@ return {
     'sindrets/diffview.nvim',
     dependencies = 'nvim-lua/plenary.nvim',
     config = function()
+      local actions = require 'diffview.actions'
+      local left_focus_request = 0
+
+      local function focus_left_diff_pane()
+        left_focus_request = left_focus_request + 1
+        local request = left_focus_request
+
+        require('diffview').emit 'focus_entry'
+
+        local function focus_left(attempt)
+          if request ~= left_focus_request then
+            return
+          end
+
+          local ok, lib = pcall(require, 'diffview.lib')
+          if not ok then
+            return
+          end
+
+          local view = lib.get_current_view()
+          local left_win = view and view.cur_layout and view.cur_layout.a and view.cur_layout.a.id
+          if left_win and vim.api.nvim_win_is_valid(left_win) then
+            vim.api.nvim_set_current_win(left_win)
+          end
+
+          if attempt < 6 then
+            vim.defer_fn(function()
+              focus_left(attempt + 1)
+            end, 25)
+          end
+        end
+
+        vim.schedule(function()
+          focus_left(1)
+        end)
+      end
+
       require('diffview').setup {
         enhanced_diff_hl = true,
         view = {
@@ -154,6 +191,17 @@ return {
         },
         file_panel = {
           win_config = { position = 'left', width = 35 },
+        },
+        keymaps = {
+          view = {
+            { 'n', '<leader>e', actions.toggle_files, { desc = 'Toggle the file panel' } },
+            { 'n', '<leader>b', false },
+          },
+          file_panel = {
+            { 'n', '<cr>', focus_left_diff_pane, { desc = 'Open selected file and focus left diff' } },
+            { 'n', '<leader>e', actions.toggle_files, { desc = 'Toggle the file panel' } },
+            { 'n', '<leader>b', false },
+          },
         },
       }
     end,

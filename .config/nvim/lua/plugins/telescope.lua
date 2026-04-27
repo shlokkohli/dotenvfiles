@@ -374,6 +374,8 @@ return {
             '--exclude', '.venv',
             '--exclude', '.turbo',
             '--exclude', '.husky',
+            '--exclude', '__pycache__',
+            '--exclude', '_pycache',
             '--exclude', 'package-lock.json',
             '--exclude', '.DS_Store',
             '--exclude', 'Thumbs.db',
@@ -382,7 +384,7 @@ return {
           },
         },
         live_grep = {
-          file_ignore_patterns = { 'node_modules', 'generated', '%.git', '%.venv', '%.turbo', '%.husky', 'package%-lock%.json$' },
+          file_ignore_patterns = { 'node_modules', 'generated', '%.git', '%.venv', '%.turbo', '%.husky', '__pycache__', '_pycache', 'package%-lock%.json$' },
           additional_args = function(_)
             return { '--hidden' }
           end,
@@ -422,6 +424,8 @@ return {
         '--glob', '!**/generated/**',
         '--glob', '!.git/**',
         '--glob', '!.venv/**',
+        '--glob', '!**/__pycache__/**',
+        '--glob', '!**/_pycache/**',
       }
 
       if opts and opts.multiline then
@@ -571,6 +575,8 @@ return {
         '--glob', '!**/generated/**',
         '--glob', '!.git/**',
         '--glob', '!.venv/**',
+        '--glob', '!**/__pycache__/**',
+        '--glob', '!**/_pycache/**',
       })
 
       opts.__inverted = false
@@ -661,30 +667,31 @@ return {
       local query = vim.fn.input 'Grep literal > '
       literal_grep(query, { prompt_title = 'Grep literal' })
     end
-    vim.keymap.set('n', '<leader>sh', builtin.help_tags, { desc = '[S]earch [H]elp' })
-    vim.keymap.set('n', '<leader>sk', builtin.keymaps, { desc = '[S]earch [K]eymaps' })
-    vim.keymap.set('n', '<leader>sf', builtin.find_files, { desc = '[S]earch [F]iles' })
-    vim.keymap.set('n', '<leader>ss', builtin.builtin, { desc = '[S]earch [S]elect Telescope' })
-    vim.keymap.set('n', '<leader>sw', function()
+    local telescope_modes = { 'n', 'x' }
+    vim.keymap.set(telescope_modes, '<leader>sh', builtin.help_tags, { desc = '[S]earch [H]elp' })
+    vim.keymap.set(telescope_modes, '<leader>sk', builtin.keymaps, { desc = '[S]earch [K]eymaps' })
+    vim.keymap.set(telescope_modes, '<leader>sf', builtin.find_files, { desc = '[S]earch [F]iles' })
+    vim.keymap.set(telescope_modes, '<leader>ss', builtin.builtin, { desc = '[S]earch [S]elect Telescope' })
+    vim.keymap.set(telescope_modes, '<leader>sw', function()
       builtin.grep_string {
         search = vim.fn.expand '<cword>',
       } -- uses global default preview_width = 0.55
     end, { desc = '[S]earch current [W]ord' })
     vim.keymap.set({ 'n', 'x' }, '<leader>sg', live_grep_smart, { desc = '[S]earch by [G]rep' })
     vim.keymap.set({ 'n', 'x' }, '<leader>sG', search_by_literal_grep, { desc = '[S]earch by literal [G]rep' })
-    vim.keymap.set('n', '<leader>sd', builtin.diagnostics, { desc = '[S]earch [D]iagnostics' })
-    vim.keymap.set('n', '<leader>sr', builtin.resume, { desc = '[S]earch [R]esume' })
-    vim.keymap.set('n', '<leader>s.', builtin.oldfiles, { desc = '[S]earch Recent Files' })
-    vim.keymap.set('n', '<leader>sb', builtin.buffers, { desc = '[S]earch [B]uffers' })
-    vim.keymap.set('n', '<leader><leader>', search_current_word_in_buffer, { desc = 'Search current word in buffer' })
+    vim.keymap.set(telescope_modes, '<leader>sd', builtin.diagnostics, { desc = '[S]earch [D]iagnostics' })
+    vim.keymap.set(telescope_modes, '<leader>sr', builtin.resume, { desc = '[S]earch [R]esume' })
+    vim.keymap.set(telescope_modes, '<leader>s.', builtin.oldfiles, { desc = '[S]earch Recent Files' })
+    vim.keymap.set(telescope_modes, '<leader>sb', builtin.buffers, { desc = '[S]earch [B]uffers' })
+    vim.keymap.set(telescope_modes, '<leader><leader>', search_current_word_in_buffer, { desc = 'Search current word in buffer' })
 
     -- Slightly advanced example of overriding default behavior and theme
-    vim.keymap.set('n', '<leader>/', function()
+    vim.keymap.set(telescope_modes, '<leader>/', function()
       current_buffer_literal_find()
     end, { desc = '[/] Search in current buffer' })
 
     -- Search specifically in files currently open in buffers
-    vim.keymap.set('n', '<leader>s/', function()
+    vim.keymap.set(telescope_modes, '<leader>s/', function()
       builtin.live_grep {
         grep_open_files = true,
         prompt_title = 'Live Grep in Open Files',
