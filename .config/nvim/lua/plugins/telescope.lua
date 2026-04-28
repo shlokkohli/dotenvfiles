@@ -27,6 +27,71 @@ return {
     local sorters = require 'telescope.sorters'
     local utils = require 'telescope.utils'
 
+    local telescope_toggle_keys = {
+      '<leader>sh',
+      '<leader>sk',
+      '<leader>sf',
+      '<leader>ss',
+      '<leader>sw',
+      '<leader>sg',
+      '<leader>sG',
+      '<leader>sd',
+      '<leader>sr',
+      '<leader>s.',
+      '<leader>sb',
+      '<leader>/',
+      '<leader>s/',
+    }
+
+    local active_telescope_key = nil
+    local telescope_launchers = {}
+
+    local telescope_close_mappings = {
+      ['<leader>/'] = actions.close,
+      ['<leader><leader>'] = actions.close,
+    }
+
+    for _, key in ipairs(telescope_toggle_keys) do
+      telescope_close_mappings[key] = function(prompt_bufnr)
+        if active_telescope_key == key then
+          actions.close(prompt_bufnr)
+          return
+        end
+
+        actions.close(prompt_bufnr)
+        vim.schedule(function()
+          local launcher = telescope_launchers[key]
+          if launcher then
+            launcher()
+          end
+        end)
+      end
+    end
+
+    local function with_telescope_close_mappings(mappings)
+      return vim.tbl_extend('force', telescope_close_mappings, mappings)
+    end
+
+    local function open_telescope(key, open_picker)
+      active_telescope_key = key
+      open_picker()
+    end
+
+    local function toggle_telescope(key, open_picker)
+      telescope_launchers[key] = function()
+        open_telescope(key, open_picker)
+      end
+
+      return function()
+        if vim.bo.filetype == 'TelescopePrompt' and active_telescope_key == key then
+          actions.close(vim.api.nvim_get_current_buf())
+          return
+        end
+
+        open_telescope(key, open_picker)
+      end
+    end
+
     local function grep_preview_query(opts, status)
       if status and status.picker and status.picker._get_prompt then
         local prompt = status.picker:_get_prompt()
@@ -300,12 +365,10 @@ return {
           wrap = true,  -- wrap long lines so matches at end of line are visible
         },
         mappings = {
-          i = {
+          i = with_telescope_close_mappings {
             ['<C-u>'] = false,
             ['<C-k>'] = require('telescope.actions').move_selection_previous, -- move to prev result
             ['<C-j>'] = require('telescope.actions').move_selection_next, -- move to next result
-            ['<leader>/'] = require('telescope.actions').close,
-            ['<leader><leader>'] = require('telescope.actions').close,
             -- Custom select: re-applies cursor AFTER neo-tree/barbar BufEnter callbacks settle
             ['<CR>'] = function(prompt_bufnr)
               local entry = require('telescope.actions.state').get_selected_entry()
@@ -348,9 +411,7 @@ return {
               picker:set_prompt(text)
             end,
           },
-          n = {
-            ['<leader>/'] = require('telescope.actions').close,
-            ['<leader><leader>'] = require('telescope.actions').close,
+          n = with_telescope_close_mappings {
             -- Also fix <CR> in Telescope's normal mode
             ['<CR>'] = function(prompt_bufnr)
               local entry = require('telescope.actions.state').get_selected_entry()
@@ -668,34 +729,34 @@ return {
       literal_grep(query, { prompt_title = 'Grep literal' })
     end
     local telescope_modes = { 'n', 'x' }
-    vim.keymap.set(telescope_modes, '<leader>sh', builtin.help_tags, { desc = '[S]earch [H]elp' })
-    vim.keymap.set(telescope_modes, '<leader>sk', builtin.keymaps, { desc = '[S]earch [K]eymaps' })
-    vim.keymap.set(telescope_modes, '<leader>sf', builtin.find_files, { desc = '[S]earch [F]iles' })
-    vim.keymap.set(telescope_modes, '<leader>ss', builtin.builtin, { desc = '[S]earch [S]elect Telescope' })
-    vim.keymap.set(telescope_modes, '<leader>sw', function()
+    vim.keymap.set(telescope_modes, '<leader>sh', toggle_telescope('<leader>sh', builtin.help_tags), { desc = '[S]earch [H]elp' })
+    vim.keymap.set(telescope_modes, '<leader>sk', toggle_telescope('<leader>sk', builtin.keymaps), { desc = '[S]earch [K]eymaps' })
+    vim.keymap.set(telescope_modes, '<leader>sf', toggle_telescope('<leader>sf', builtin.find_files), { desc = '[S]earch [F]iles' })
+    vim.keymap.set(telescope_modes, '<leader>ss', toggle_telescope('<leader>ss', builtin.builtin), { desc = '[S]earch [S]elect Telescope' })
+    vim.keymap.set(telescope_modes, '<leader>sw', toggle_telescope('<leader>sw', function()
       builtin.grep_string {
         search = vim.fn.expand '<cword>',
       } -- uses global default preview_width = 0.55
-    end, { desc = '[S]earch current [W]ord' })
-    vim.keymap.set({ 'n', 'x' }, '<leader>sg', live_grep_smart, { desc = '[S]earch by [G]rep' })
-    vim.keymap.set({ 'n', 'x' }, '<leader>sG', search_by_literal_grep, { desc = '[S]earch by literal [G]rep' })
-    vim.keymap.set(telescope_modes, '<leader>sd', builtin.diagnostics, { desc = '[S]earch [D]iagnostics' })
-    vim.keymap.set(telescope_modes, '<leader>sr', builtin.resume, { desc = '[S]earch [R]esume' })
-    vim.keymap.set(telescope_modes, '<leader>s.', builtin.oldfiles, { desc = '[S]earch Recent Files' })
-    vim.keymap.set(telescope_modes, '<leader>sb', builtin.buffers, { desc = '[S]earch [B]uffers' })
-    vim.keymap.set(telescope_modes, '<leader><leader>', search_current_word_in_buffer, { desc = 'Search current word in buffer' })
+    end), { desc = '[S]earch current [W]ord' })
+    vim.keymap.set({ 'n', 'x' }, '<leader>sg', toggle_telescope('<leader>sg', live_grep_smart), { desc = '[S]earch by [G]rep' })
+    vim.keymap.set({ 'n', 'x' }, '<leader>sG', toggle_telescope('<leader>sG', search_by_literal_grep), { desc = '[S]earch by literal [G]rep' })
+    vim.keymap.set(telescope_modes, '<leader>sd', toggle_telescope('<leader>sd', builtin.diagnostics), { desc = '[S]earch [D]iagnostics' })
+    vim.keymap.set(telescope_modes, '<leader>sr', toggle_telescope('<leader>sr', builtin.resume), { desc = '[S]earch [R]esume' })
+    vim.keymap.set(telescope_modes, '<leader>s.', toggle_telescope('<leader>s.', builtin.oldfiles), { desc = '[S]earch Recent Files' })
+    vim.keymap.set(telescope_modes, '<leader>sb', toggle_telescope('<leader>sb', builtin.buffers), { desc = '[S]earch [B]uffers' })
+    vim.keymap.set(telescope_modes, '<leader><leader>', toggle_telescope('<leader><leader>', search_current_word_in_buffer), { desc = 'Search current word in buffer' })
 
     -- Slightly advanced example of overriding default behavior and theme
-    vim.keymap.set(telescope_modes, '<leader>/', function()
+    vim.keymap.set(telescope_modes, '<leader>/', toggle_telescope('<leader>/', function()
       current_buffer_literal_find()
-    end, { desc = '[/] Search in current buffer' })
+    end), { desc = '[/] Search in current buffer' })
 
     -- Search specifically in files currently open in buffers
-    vim.keymap.set(telescope_modes, '<leader>s/', function()
+    vim.keymap.set(telescope_modes, '<leader>s/', toggle_telescope('<leader>s/', function()
       builtin.live_grep {
         grep_open_files = true,
         prompt_title = 'Live Grep in Open Files',
       }
-    end, { desc = '[S]earch [/] in Open Files' })
+    end), { desc = '[S]earch [/] in Open Files' })
   end,
 }
