@@ -728,6 +728,35 @@ return {
       local query = vim.fn.input 'Grep literal > '
       literal_grep(query, { prompt_title = 'Grep literal' })
     end
+
+    local function current_buffer_diagnostics()
+      local bufnr = vim.api.nvim_get_current_buf()
+      local opts = {
+        bufnr = 0,
+        path_display = 'hidden',
+      }
+
+      if not vim.tbl_isempty(vim.diagnostic.get(bufnr)) then
+        builtin.diagnostics(opts)
+        return
+      end
+
+      pickers
+        .new(opts, {
+          prompt_title = 'Document Diagnostics',
+          finder = finders.new_table {
+            results = {},
+            entry_maker = make_entry.gen_from_diagnostics(opts),
+          },
+          previewer = conf.qflist_previewer(opts),
+          sorter = conf.prefilter_sorter {
+            tag = 'type',
+            sorter = conf.generic_sorter(opts),
+          },
+        })
+        :find()
+    end
+
     local telescope_modes = { 'n', 'x' }
     vim.keymap.set(telescope_modes, '<leader>sh', toggle_telescope('<leader>sh', builtin.help_tags), { desc = '[S]earch [H]elp' })
     vim.keymap.set(telescope_modes, '<leader>sk', toggle_telescope('<leader>sk', builtin.keymaps), { desc = '[S]earch [K]eymaps' })
@@ -740,7 +769,7 @@ return {
     end), { desc = '[S]earch current [W]ord' })
     vim.keymap.set({ 'n', 'x' }, '<leader>sg', toggle_telescope('<leader>sg', live_grep_smart), { desc = '[S]earch by [G]rep' })
     vim.keymap.set({ 'n', 'x' }, '<leader>sG', toggle_telescope('<leader>sG', search_by_literal_grep), { desc = '[S]earch by literal [G]rep' })
-    vim.keymap.set(telescope_modes, '<leader>sd', toggle_telescope('<leader>sd', builtin.diagnostics), { desc = '[S]earch [D]iagnostics' })
+    vim.keymap.set(telescope_modes, '<leader>sd', toggle_telescope('<leader>sd', current_buffer_diagnostics), { desc = '[S]earch [D]iagnostics' })
     vim.keymap.set(telescope_modes, '<leader>sr', toggle_telescope('<leader>sr', builtin.resume), { desc = '[S]earch [R]esume' })
     vim.keymap.set(telescope_modes, '<leader>s.', toggle_telescope('<leader>s.', builtin.oldfiles), { desc = '[S]earch Recent Files' })
     vim.keymap.set(telescope_modes, '<leader>sb', toggle_telescope('<leader>sb', builtin.buffers), { desc = '[S]earch [B]uffers' })
