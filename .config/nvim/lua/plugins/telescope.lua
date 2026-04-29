@@ -32,7 +32,7 @@ return {
       '<leader>sk',
       '<leader>sf',
       '<leader>ss',
-      '<leader>sw',
+      '<leader>sc',
       '<leader>sg',
       '<leader>sG',
       '<leader>sd',
@@ -366,7 +366,8 @@ return {
         },
         mappings = {
           i = with_telescope_close_mappings {
-            ['<C-u>'] = false,
+            ['<C-u>'] = actions.preview_scrolling_up,
+            ['<C-d>'] = actions.preview_scrolling_down,
             ['<C-k>'] = require('telescope.actions').move_selection_previous, -- move to prev result
             ['<C-j>'] = require('telescope.actions').move_selection_next, -- move to next result
             -- Custom select: re-applies cursor AFTER neo-tree/barbar BufEnter callbacks settle
@@ -412,6 +413,8 @@ return {
             end,
           },
           n = with_telescope_close_mappings {
+            ['<C-u>'] = actions.preview_scrolling_up,
+            ['<C-d>'] = actions.preview_scrolling_down,
             -- Also fix <CR> in Telescope's normal mode
             ['<CR>'] = function(prompt_bufnr)
               local entry = require('telescope.actions.state').get_selected_entry()
@@ -762,11 +765,11 @@ return {
     vim.keymap.set(telescope_modes, '<leader>sk', toggle_telescope('<leader>sk', builtin.keymaps), { desc = '[S]earch [K]eymaps' })
     vim.keymap.set(telescope_modes, '<leader>sf', toggle_telescope('<leader>sf', builtin.find_files), { desc = '[S]earch [F]iles' })
     vim.keymap.set(telescope_modes, '<leader>ss', toggle_telescope('<leader>ss', builtin.builtin), { desc = '[S]earch [S]elect Telescope' })
-    vim.keymap.set(telescope_modes, '<leader>sw', toggle_telescope('<leader>sw', function()
+    vim.keymap.set(telescope_modes, '<leader>sc', toggle_telescope('<leader>sc', function()
       builtin.grep_string {
         search = vim.fn.expand '<cword>',
       } -- uses global default preview_width = 0.55
-    end), { desc = '[S]earch current [W]ord' })
+    end), { desc = '[S]earch [C]urrent word' })
     vim.keymap.set({ 'n', 'x' }, '<leader>sg', toggle_telescope('<leader>sg', live_grep_smart), { desc = '[S]earch by [G]rep' })
     vim.keymap.set({ 'n', 'x' }, '<leader>sG', toggle_telescope('<leader>sG', search_by_literal_grep), { desc = '[S]earch by literal [G]rep' })
     vim.keymap.set(telescope_modes, '<leader>sd', toggle_telescope('<leader>sd', current_buffer_diagnostics), { desc = '[S]earch [D]iagnostics' })
