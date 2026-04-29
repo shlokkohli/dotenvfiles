@@ -23,6 +23,31 @@ vim.keymap.set('n', '<A-j>', ':m .+1<CR>==', { silent = true })
 vim.keymap.set('n', '˚', ':m .-2<CR>==', { silent = true }) -- macOS Option+K
 vim.keymap.set('n', '∆', ':m .+1<CR>==', { silent = true }) -- macOS Option+J
 
+local function open_line_with_same_indent(direction)
+  local line_number = vim.api.nvim_win_get_cursor(0)[1]
+  local line = vim.api.nvim_get_current_line()
+  local indent = line:match '^%s*' or ''
+  local count = vim.v.count1
+  local lines = {}
+
+  for _ = 1, count do
+    table.insert(lines, indent)
+  end
+
+  local insert_at = direction == 'below' and line_number or line_number - 1
+  vim.api.nvim_buf_set_lines(0, insert_at, insert_at, true, lines)
+  vim.api.nvim_win_set_cursor(0, { insert_at + 1, #indent })
+  vim.cmd 'startinsert!'
+end
+
+vim.keymap.set('n', 'o', function()
+  open_line_with_same_indent 'below'
+end, { desc = 'Open line below with same indent', silent = true })
+
+vim.keymap.set('n', 'O', function()
+  open_line_with_same_indent 'above'
+end, { desc = 'Open line above with same indent', silent = true })
+
 
 vim.keymap.set('n', '<leader>n', ':enew<CR>', { noremap = true, silent = true })
 
