@@ -359,6 +359,8 @@ return {
           '--column',
           '--smart-case',
           '--fixed-strings',
+          '--glob',
+          '!**/.next/**',
         },
         preview = {
           treesitter = false,
@@ -435,6 +437,7 @@ return {
             '--exclude', 'node_modules',
             '--exclude', 'generated',
             '--exclude', '.git',
+            '--exclude', '.next',
             '--exclude', '.venv',
             '--exclude', '.turbo',
             '--exclude', '.husky',
@@ -448,7 +451,7 @@ return {
           },
         },
         live_grep = {
-          file_ignore_patterns = { 'node_modules', 'generated', '%.git', '%.venv', '%.turbo', '%.husky', '__pycache__', '_pycache', 'package%-lock%.json$' },
+          file_ignore_patterns = { 'node_modules', 'generated', '%.git', '%.next', '%.venv', '%.turbo', '%.husky', '__pycache__', '_pycache', 'package%-lock%.json$' },
           additional_args = function(_)
             return { '--hidden' }
           end,
@@ -487,6 +490,7 @@ return {
         '--glob', '!**/node_modules/**',
         '--glob', '!**/generated/**',
         '--glob', '!.git/**',
+        '--glob', '!**/.next/**',
         '--glob', '!.venv/**',
         '--glob', '!**/__pycache__/**',
         '--glob', '!**/_pycache/**',
@@ -638,6 +642,7 @@ return {
         '--glob', '!**/node_modules/**',
         '--glob', '!**/generated/**',
         '--glob', '!.git/**',
+        '--glob', '!**/.next/**',
         '--glob', '!.venv/**',
         '--glob', '!**/__pycache__/**',
         '--glob', '!**/_pycache/**',

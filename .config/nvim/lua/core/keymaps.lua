@@ -25,7 +25,13 @@ vim.keymap.set('n', '∆', ':m .+1<CR>==', { silent = true }) -- macOS Option+J
 
 local function open_line_with_same_indent(direction)
   local line_number = vim.api.nvim_win_get_cursor(0)[1]
-  local line = vim.api.nvim_get_current_line()
+  local source_line_number = line_number
+
+  if direction == 'above' and line_number > 1 then
+    source_line_number = line_number - 1
+  end
+
+  local line = vim.api.nvim_buf_get_lines(0, source_line_number - 1, source_line_number, false)[1] or ''
   local indent = line:match '^%s*' or ''
   local count = vim.v.count1
   local lines = {}
@@ -235,12 +241,16 @@ vim.api.nvim_create_autocmd('BufDelete', {
 })
 
 -- Buffers
+vim.keymap.set('n', '<C-o>', '<Cmd>BufferNext<CR>', opts)
 vim.keymap.set('n', '<Tab>', '<Cmd>BufferNext<CR>', opts)
 vim.keymap.set('n', '<S-Tab>', '<Cmd>BufferPrevious<CR>', opts)
+vim.keymap.set('v', '<C-o>', buffer_next_maybe_restore_visual, opts)
 vim.keymap.set('v', '<Tab>', buffer_next_maybe_restore_visual, opts)
 vim.keymap.set('v', '<S-Tab>', buffer_prev_maybe_restore_visual, opts)
 vim.keymap.set('n', '<leader>b', '<cmd> enew <CR>', opts) -- new buffer
-vim.keymap.set('n', '<leader>x', '<Cmd>BufferClose<CR>', opts)
+vim.keymap.set('n', '<leader>x', '<Cmd>BufferClose<CR>', vim.tbl_extend('force', opts, {
+  nowait = true,
+}))
 
 -- Window management
 vim.keymap.set('n', '<leader>v', '<C-w>v', opts) -- split window vertically
