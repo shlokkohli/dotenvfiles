@@ -48,9 +48,150 @@ vim.opt.runtimepath:remove '/usr/share/vim/vimfiles' -- Separate Vim plugins fro
 vim.o.foldlevel = 99
 vim.o.foldlevelstart = 99
 vim.o.foldenable = true
-vim.api.nvim_create_autocmd({ 'BufReadPost', 'BufNewFile' }, {
+
+local jsx_fold_cache = {}
+
+local function line_for_offset(line_starts, offset)
+  local low = 1
+  local high = #line_starts
+
+  while low <= high do
+    local mid = math.floor((low + high) / 2)
+    local next_start = line_starts[mid + 1] or math.huge
+
+    if offset < line_starts[mid] then
+      high = mid - 1
+    elseif offset >= next_start then
+      low = mid + 1
+    else
+      return mid
+    end
+  end
+
+  return #line_starts
+end
+
+local function parse_jsx_folds(bufnr)
+  local changedtick = vim.b[bufnr].changedtick
+  local cached = jsx_fold_cache[bufnr]
+  if cached and cached.changedtick == changedtick then
+    return cached
+  end
+
+  local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+  local text = table.concat(lines, '\n')
+  local line_starts = {}
+  local offset = 1
+
+  for _, line in ipairs(lines) do
+    table.insert(line_starts, offset)
+    offset = offset + #line + 1
+  end
+
+  local stack = {}
+  local ranges = {}
+  local pos = 1
+
+  while pos <= #text do
+    local start_pos, end_pos, tag = text:find('<(.-)>', pos)
+    if not start_pos then
+      break
+    end
+
+    local start_line = line_for_offset(line_starts, start_pos)
+    local end_line = line_for_offset(line_starts, end_pos)
+    local trimmed = tag:match('^%s*(.-)%s*$') or ''
+    local is_special = trimmed:match('^[!?]') ~= nil
+    local is_closing = trimmed:match('^/') ~= nil
+    local is_self_closing = trimmed:match('/%s*$') ~= nil
+    local name = nil
+
+    if trimmed == '' then
+      name = ''
+    elseif is_closing then
+      name = trimmed:match('^/%s*([%w_.:-]+)') or ''
+    elseif not is_special then
+      name = trimmed:match('^([%w_.:-]+)')
+    end
+
+    if name then
+      if is_closing then
+        for i = #stack, 1, -1 do
+          if stack[i].name == name then
+            local open = table.remove(stack, i)
+            if open.line < end_line then
+              table.insert(ranges, { start_line = open.line, end_line = end_line })
+            end
+            break
+          end
+        end
+      elseif not is_self_closing then
+        table.insert(stack, { name = name, line = start_line })
+      end
+    end
+
+    pos = end_pos + 1
+  end
+
+  local levels = {}
+  for i = 1, #lines do
+    levels[i] = 0
+  end
+
+  for _, range in ipairs(ranges) do
+    for line = range.start_line, range.end_line do
+      levels[line] = levels[line] + 1
+    end
+  end
+
+  cached = {
+    changedtick = changedtick,
+    levels = levels,
+    ranges = ranges,
+  }
+  jsx_fold_cache[bufnr] = cached
+  return cached
+end
+
+function _G.ReactJsxFoldexpr(lnum)
+  local folds = parse_jsx_folds(vim.api.nvim_get_current_buf())
+  local jsx_level = folds.levels[lnum] or 0
+  local ts_level = 0
+
+  local ok, value = pcall(vim.treesitter.foldexpr)
+  if ok then
+    ts_level = tonumber(value) or tonumber(tostring(value):match('%d+')) or 0
+  end
+
+  return math.max(jsx_level, ts_level)
+end
+
+function _G.ReactJsxEnclosingFoldStart()
+  local bufnr = vim.api.nvim_get_current_buf()
+  local cursor_line = vim.api.nvim_win_get_cursor(0)[1]
+  local folds = parse_jsx_folds(bufnr)
+  local best = nil
+
+  for _, range in ipairs(folds.ranges) do
+    if range.start_line <= cursor_line and cursor_line <= range.end_line then
+      if not best or (range.end_line - range.start_line) < (best.end_line - best.start_line) then
+        best = range
+      end
+    end
+  end
+
+  return best and best.start_line or nil
+end
+
+vim.api.nvim_create_autocmd({ 'BufReadPost', 'BufNewFile', 'FileType' }, {
   group = vim.api.nvim_create_augroup('ts-folding', { clear = true }),
   callback = function()
+    if vim.bo.filetype == 'javascriptreact' or vim.bo.filetype == 'typescriptreact' then
+      vim.opt_local.foldmethod = 'expr'
+      vim.opt_local.foldexpr = 'v:lua.ReactJsxFoldexpr(v:lnum)'
+      return
+    end
+
     -- Only enable if Treesitter can parse this buffer
     local ok = pcall(vim.treesitter.get_parser, 0)
     if ok then

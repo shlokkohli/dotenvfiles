@@ -163,6 +163,68 @@ vim.keymap.set('n', '<C-u>', '<C-u>zz', opts)
 vim.keymap.set('n', 'n', 'nzzzv', opts)
 vim.keymap.set('n', 'N', 'Nzzzv', opts)
 
+local function get_treesitter_node()
+  local ok, node = pcall(vim.treesitter.get_node)
+  if ok and node then
+    return node
+  end
+
+  local parser_ok, parser = pcall(vim.treesitter.get_parser, 0)
+  if not parser_ok or not parser then
+    return nil
+  end
+
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  local row = cursor[1] - 1
+  local col = cursor[2]
+  local tree = parser:parse()[1]
+  return tree and tree:root():named_descendant_for_range(row, col, row, col)
+end
+
+local function get_jsx_fold_node()
+  if vim.bo.filetype ~= 'javascriptreact' and vim.bo.filetype ~= 'typescriptreact' then
+    return nil
+  end
+
+  local node = get_treesitter_node()
+  while node do
+    local node_type = node:type()
+    if node_type == 'jsx_element' or node_type == 'jsx_fragment' then
+      local start_row, _, end_row = node:range()
+      if end_row > start_row then
+        return node
+      end
+    end
+    node = node:parent()
+  end
+
+  return nil
+end
+
+vim.keymap.set('n', 'za', function()
+  local node = get_jsx_fold_node()
+  local start_row = nil
+
+  if node then
+    start_row = node:range() + 1
+  elseif _G.ReactJsxEnclosingFoldStart then
+    start_row = _G.ReactJsxEnclosingFoldStart()
+  end
+
+  if not start_row then
+    pcall(vim.cmd, 'normal! za')
+    return
+  end
+
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  vim.api.nvim_win_set_cursor(0, { start_row, 0 })
+  pcall(vim.cmd, 'normal! za')
+
+  if vim.fn.foldclosed(start_row) == -1 then
+    vim.api.nvim_win_set_cursor(0, cursor)
+  end
+end, { desc = 'Toggle fold, preferring current JSX element', silent = true })
+
 local function go_to_line_percent(percent)
   local first_code_column = math.max(1, vim.fn.indent('.') + 1)
   local line_width = math.max(first_code_column, vim.fn.virtcol('$') - 1)
@@ -188,10 +250,31 @@ vim.keymap.set({ 'n', 'v', 'o' }, '0', '^', { desc = 'Go to first non-blank char
 vim.keymap.set({ 'n', 'v', 'o' }, '^', '0', { desc = 'Go to absolute start of line', noremap = true })
 
 -- Resize with arrows
+local function resize_visible_neotree(delta)
+  for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+    local buf = vim.api.nvim_win_get_buf(win)
+    if vim.bo[buf].filetype == 'neo-tree' then
+      local width = vim.api.nvim_win_get_width(win)
+      vim.api.nvim_win_set_width(win, math.max(1, width + delta))
+      return true
+    end
+  end
+
+  return false
+end
+
 vim.keymap.set('n', '<Up>', ':resize -2<CR>', opts)
 vim.keymap.set('n', '<Down>', ':resize +2<CR>', opts)
-vim.keymap.set('n', '<Left>', ':vertical resize -2<CR>', opts)
-vim.keymap.set('n', '<Right>', ':vertical resize +2<CR>', opts)
+vim.keymap.set('n', '<Left>', function()
+  if not resize_visible_neotree(-2) then
+    vim.cmd 'vertical resize -2'
+  end
+end, opts)
+vim.keymap.set('n', '<Right>', function()
+  if not resize_visible_neotree(2) then
+    vim.cmd 'vertical resize +2'
+  end
+end, opts)
 
 -- Buffers: after switching away in Visual mode, `gv` restores selection when re-entering the buffer
 local restore_visual_on_enter = {}

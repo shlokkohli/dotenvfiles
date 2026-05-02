@@ -28,7 +28,6 @@ return {
     local utils = require 'telescope.utils'
 
     local telescope_toggle_keys = {
-      '<leader>sh',
       '<leader>sk',
       '<leader>sf',
       '<leader>ss',
@@ -368,6 +367,8 @@ return {
         },
         mappings = {
           i = with_telescope_close_mappings {
+            ['<C-/>'] = false,
+            ['<C-_>'] = false,
             ['<C-u>'] = actions.preview_scrolling_up,
             ['<C-d>'] = actions.preview_scrolling_down,
             ['<C-k>'] = require('telescope.actions').move_selection_previous, -- move to prev result
@@ -415,6 +416,7 @@ return {
             end,
           },
           n = with_telescope_close_mappings {
+            ['?'] = false,
             ['<C-u>'] = actions.preview_scrolling_up,
             ['<C-d>'] = actions.preview_scrolling_down,
             -- Also fix <CR> in Telescope's normal mode
@@ -766,7 +768,6 @@ return {
     end
 
     local telescope_modes = { 'n', 'x' }
-    vim.keymap.set(telescope_modes, '<leader>sh', toggle_telescope('<leader>sh', builtin.help_tags), { desc = '[S]earch [H]elp' })
     vim.keymap.set(telescope_modes, '<leader>sk', toggle_telescope('<leader>sk', builtin.keymaps), { desc = '[S]earch [K]eymaps' })
     vim.keymap.set(telescope_modes, '<leader>sf', toggle_telescope('<leader>sf', builtin.find_files), { desc = '[S]earch [F]iles' })
     vim.keymap.set(telescope_modes, '<leader>ss', toggle_telescope('<leader>ss', builtin.builtin), { desc = '[S]earch [S]elect Telescope' })

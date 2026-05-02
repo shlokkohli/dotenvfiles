@@ -126,7 +126,16 @@ return {
       -- A list of functions, each representing a global custom command
       -- that will be available in all sources (if not overridden in `opts[source_name].commands`)
       -- see `:h neo-tree-custom-commands-global`
-      commands = {},
+      commands = {
+        shrink_width = function()
+          local width = vim.api.nvim_win_get_width(0)
+          vim.api.nvim_win_set_width(0, math.max(1, width - 2))
+        end,
+        expand_width = function()
+          local width = vim.api.nvim_win_get_width(0)
+          vim.api.nvim_win_set_width(0, width + 2)
+        end,
+      },
       window = {
         position = 'left',
         width = 40,
@@ -143,6 +152,8 @@ return {
           ['<cr>'] = 'open',
           ['<esc>'] = 'cancel', -- close preview or floating neo-tree window
           ['P'] = { 'toggle_preview', config = { use_float = true } },
+          ['<Left>'] = 'shrink_width',
+          ['<Right>'] = 'expand_width',
           ['l'] = 'open',
           ['S'] = 'open_split',
           ['s'] = 'open_vsplit',

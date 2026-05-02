@@ -7,7 +7,9 @@ return { -- Highlight, edit, and navigate code
     ensure_installed = {
       'lua',
       'python',
+      'ecma',
       'javascript',
+      'jsx',
       'typescript',
       'vimdoc',
       'vim',
