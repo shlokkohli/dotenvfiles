@@ -360,6 +360,8 @@ return {
           '--fixed-strings',
           '--glob',
           '!**/.next/**',
+          '--glob',
+          '!**/.cache/**',
         },
         preview = {
           treesitter = false,
@@ -440,6 +442,7 @@ return {
             '--exclude', 'generated',
             '--exclude', '.git',
             '--exclude', '.next',
+            '--exclude', '.cache',
             '--exclude', '.venv',
             '--exclude', '.turbo',
             '--exclude', '.husky',
@@ -453,7 +456,7 @@ return {
           },
         },
         live_grep = {
-          file_ignore_patterns = { 'node_modules', 'generated', '%.git', '%.next', '%.venv', '%.turbo', '%.husky', '__pycache__', '_pycache', 'package%-lock%.json$' },
+          file_ignore_patterns = { 'node_modules', 'generated', '%.git', '%.next', '%.cache', '%.venv', '%.turbo', '%.husky', '__pycache__', '_pycache', 'package%-lock%.json$' },
           additional_args = function(_)
             return { '--hidden' }
           end,
@@ -493,6 +496,7 @@ return {
         '--glob', '!**/generated/**',
         '--glob', '!.git/**',
         '--glob', '!**/.next/**',
+        '--glob', '!**/.cache/**',
         '--glob', '!.venv/**',
         '--glob', '!**/__pycache__/**',
         '--glob', '!**/_pycache/**',
@@ -645,6 +649,7 @@ return {
         '--glob', '!**/generated/**',
         '--glob', '!.git/**',
         '--glob', '!**/.next/**',
+        '--glob', '!**/.cache/**',
         '--glob', '!.venv/**',
         '--glob', '!**/__pycache__/**',
         '--glob', '!**/_pycache/**',

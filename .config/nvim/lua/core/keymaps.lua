@@ -504,8 +504,8 @@ vim.api.nvim_create_autocmd("BufDelete", {
   end,
 })
 
--- Smart vab: select around the nearest enclosing bracket pair (), [], or {}
-local function smart_around_bracket()
+-- Smart bracket text objects: select the nearest enclosing (), [], or {} pair.
+local function smart_bracket_textobject(kind)
   local brackets = { { '(', ')' }, { '[', ']' }, { '{', '}' } }
   local best = nil
 
@@ -542,20 +542,32 @@ local function smart_around_bracket()
 
   if best then
     local char = best.open
-    -- Use the appropriate va( / va[ / va{ command
+    local command = kind == 'inner' and 'vi' or 'va'
+
     if char == '(' then
-      vim.cmd('normal! va(')
+      vim.cmd('normal! ' .. command .. '(')
     elseif char == '[' then
-      vim.cmd('normal! va[')
+      vim.cmd('normal! ' .. command .. '[')
     elseif char == '{' then
-      vim.cmd('normal! va{')
+      vim.cmd('normal! ' .. command .. '{')
     end
   end
 end
 
+local function smart_around_bracket()
+  smart_bracket_textobject('around')
+end
+
+local function smart_inner_bracket()
+  smart_bracket_textobject('inner')
+end
+
 vim.keymap.set('n', 'vab', smart_around_bracket, { desc = 'Select around nearest bracket', silent = true })
+vim.keymap.set('n', 'vib', smart_inner_bracket, { desc = 'Select inside nearest bracket', silent = true })
 vim.keymap.set('x', 'ab', smart_around_bracket, { desc = 'Expand selection to around nearest bracket', silent = true })
+vim.keymap.set('x', 'ib', smart_inner_bracket, { desc = 'Shrink selection to inside nearest bracket', silent = true })
 vim.keymap.set('o', 'ab', smart_around_bracket, { desc = 'Around nearest bracket (operator pending)', silent = true })
+vim.keymap.set('o', 'ib', smart_inner_bracket, { desc = 'Inside nearest bracket (operator pending)', silent = true })
 
 local function node_type_matches_function(node)
   local node_type = node:type()
