@@ -325,10 +325,10 @@ vim.api.nvim_create_autocmd('BufDelete', {
 
 -- Buffers
 vim.keymap.set('n', '<C-o>', '<Cmd>BufferNext<CR>', opts)
-vim.keymap.set('n', '<Tab>', '<Cmd>BufferPrevious<CR>', opts)
+vim.keymap.set('n', '<Tab>', '<Cmd>BufferNext<CR>', opts)
 vim.keymap.set('n', '<S-Tab>', '<Cmd>BufferPrevious<CR>', opts)
 vim.keymap.set('v', '<C-o>', buffer_next_maybe_restore_visual, opts)
-vim.keymap.set('v', '<Tab>', buffer_prev_maybe_restore_visual, opts)
+vim.keymap.set('v', '<Tab>', buffer_next_maybe_restore_visual, opts)
 vim.keymap.set('v', '<S-Tab>', buffer_prev_maybe_restore_visual, opts)
 vim.keymap.set('n', '<leader>b', '<cmd> enew <CR>', opts) -- new buffer
 vim.keymap.set('n', '<leader>x', '<Cmd>BufferClose<CR>', vim.tbl_extend('force', opts, {

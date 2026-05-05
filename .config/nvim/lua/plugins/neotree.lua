@@ -327,13 +327,30 @@ return {
     vim.keymap.set('n', '<leader>e', ':Neotree toggle position=left<CR>', { noremap = true, silent = true }) -- focus file explorer
     vim.keymap.set('n', '<leader>ngs', ':Neotree float git_status<CR>', { noremap = true, silent = true }) -- open git status window
 
-    -- Auto-refresh neo-tree on neogit events so git status marks clear immediately like VS Code
+    -- Refresh neo-tree git status on user interaction (not continuous watching)
+    local function refresh_neotree_git()
+      local ok, manager = pcall(require, "neo-tree.sources.manager")
+      if ok then
+        manager.refresh("filesystem")
+        manager.refresh("git_status")
+      end
+    end
+
+    -- When you alt-tab back to Neovim (e.g. after committing in terminal)
+    vim.api.nvim_create_autocmd("FocusGained", {
+      callback = refresh_neotree_git,
+    })
+
+    -- When you enter a neo-tree window (click/navigate into the sidebar)
+    vim.api.nvim_create_autocmd("BufEnter", {
+      pattern = "neo-tree *",
+      callback = refresh_neotree_git,
+    })
+
+    -- When Neogit finishes an action
     vim.api.nvim_create_autocmd("User", {
-      pattern = { "NeogitStatusRefresh", "NeogitCommitComplete", "NeogitPushComplete" },
-      callback = function()
-        require("neo-tree.sources.manager").refresh("filesystem")
-        require("neo-tree.sources.manager").refresh("git_status")
-      end,
+      pattern = { "NeogitStatusRefreshed", "NeogitCommitComplete", "NeogitPushComplete" },
+      callback = refresh_neotree_git,
     })
   end,
 }

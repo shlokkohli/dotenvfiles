@@ -218,11 +218,11 @@ return {
     end
 
     local function current_buffer_literal_find(default_text, full_size)
-      local literal_substring_sorter = sorters.Sorter:new {
+      local literal_line_number_sorter = sorters.Sorter:new {
         discard = true,
         scoring_function = function(_, prompt, _, entry)
           if prompt == '' then
-            return 1
+            return entry.lnum or 1
           end
 
           local needle = prompt
@@ -237,7 +237,7 @@ return {
             return -1
           end
 
-          return match_start
+          return entry.lnum or 1
         end,
         highlighter = function(_, prompt, display)
           if prompt == '' then
@@ -301,7 +301,7 @@ return {
             results = lines_with_numbers,
             entry_maker = make_entry.gen_from_buffer_lines(picker_opts),
           },
-          sorter = literal_substring_sorter,
+          sorter = literal_line_number_sorter,
           attach_mappings = function(prompt_bufnr)
             actions.select_default:replace(function()
               local selection = action_state.get_selected_entry()

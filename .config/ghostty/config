@@ -1,7 +1,6 @@
 keybind = ctrl+tab=text:\x1b[27;5;9~
 keybind = ctrl+shift+tab=text:\x1b[27;6;9~
-keybind = ctrl+i=text:\x1b[27;6;9~
-keybind = ctrl+o=text:\x1b[27;5;9~
+keybind = ctrl+i=text:\x1b[Z
 font-size = 13
 keybind = ctrl+j=unbind
 keybind = cmd+enter=ignore
