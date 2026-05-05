@@ -32,6 +32,7 @@ require('lazy').setup {
   require 'plugins.treesitter',
   require 'plugins.surround',
   require 'plugins.telescope',
+  require 'plugins.flash',
   require 'plugins.lsp',
   require 'plugins.autocompletion',
   require 'plugins.none-ls',
