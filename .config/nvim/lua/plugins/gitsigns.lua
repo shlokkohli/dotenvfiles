@@ -1,4 +1,49 @@
 -- Full Git workflow: gutter signs, merge conflicts, and VS Code–style diffs
+local diffview_buffers = {
+  active = false,
+  pre_existing = {},
+}
+
+local function is_listed_loaded_buffer(buf)
+  return vim.api.nvim_buf_is_valid(buf) and vim.api.nvim_buf_is_loaded(buf) and vim.bo[buf].buflisted
+end
+
+local function hide_pre_diffview_buffers()
+  diffview_buffers.active = true
+  diffview_buffers.pre_existing = {}
+
+  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+    if is_listed_loaded_buffer(buf) then
+      diffview_buffers.pre_existing[buf] = true
+      vim.bo[buf].buflisted = false
+    end
+  end
+end
+
+local function restore_pre_diffview_buffers()
+  for buf in pairs(diffview_buffers.pre_existing) do
+    if vim.api.nvim_buf_is_valid(buf) and vim.api.nvim_buf_is_loaded(buf) then
+      vim.bo[buf].buflisted = true
+    end
+  end
+end
+
+local function cleanup_diffview_buffers()
+  if not diffview_buffers.active then
+    return
+  end
+
+  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+    if is_listed_loaded_buffer(buf) and not diffview_buffers.pre_existing[buf] then
+      vim.cmd('bwipeout! ' .. buf)
+    end
+  end
+
+  restore_pre_diffview_buffers()
+  diffview_buffers.active = false
+  diffview_buffers.pre_existing = {}
+end
+
 return {
   -- Gutter signs + blame
   {
@@ -105,32 +150,20 @@ return {
         neogit.open { kind = 'tab' }
       end, { desc = 'Open Neogit (tab)' })
 
-      -- Track buffers open before entering Diffview
-      local pre_diffview_bufs = {}
-
       local function toggle_diffview()
         local lib_ok, lib = pcall(require, 'diffview.lib')
         if lib_ok and lib.get_current_view() then
           vim.cmd('DiffviewClose')
-          -- Close any buffers that were opened during the Diffview session
-          for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-            if vim.api.nvim_buf_is_loaded(buf)
-              and vim.bo[buf].buflisted
-              and not pre_diffview_bufs[buf]
-            then
-              vim.cmd('bwipeout! ' .. buf)
-            end
-          end
-          pre_diffview_bufs = {}
+          vim.schedule(cleanup_diffview_buffers)
         else
-          -- Snapshot current buffer list before opening Diffview
-          pre_diffview_bufs = {}
-          for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-            if vim.api.nvim_buf_is_loaded(buf) and vim.bo[buf].buflisted then
-              pre_diffview_bufs[buf] = true
-            end
+          hide_pre_diffview_buffers()
+          local ok, err = pcall(vim.cmd, 'DiffviewOpen --no-ignore-whitespace')
+          if not ok then
+            restore_pre_diffview_buffers()
+            diffview_buffers.active = false
+            diffview_buffers.pre_existing = {}
+            error(err)
           end
-          vim.cmd('DiffviewOpen --no-ignore-whitespace')
         end
       end
 
@@ -147,8 +180,88 @@ return {
     config = function()
       local actions = require 'diffview.actions'
       local left_focus_request = 0
+      local deleted_file_match = [[^D \zs.*$]]
+      local untracked_file_match = [[^U\ze ]]
+      local deleted_file_group = vim.api.nvim_create_augroup('DiffviewDeletedFileStrike', { clear = true })
+
+      local function set_deleted_file_hl()
+        vim.api.nvim_set_hl(0, 'DiffviewDeletedFile', { strikethrough = true })
+      end
+
+      local function display_untracked_as_u(buf)
+        if not (buf and vim.api.nvim_buf_is_valid(buf) and vim.bo[buf].filetype == 'DiffviewFiles') then
+          return
+        end
+
+        local was_modifiable = vim.bo[buf].modifiable
+        local was_modified = vim.bo[buf].modified
+        vim.bo[buf].modifiable = true
+
+        for line_num, line in ipairs(vim.api.nvim_buf_get_lines(buf, 0, -1, false)) do
+          if line:sub(1, 2) == '? ' then
+            vim.api.nvim_buf_set_text(buf, line_num - 1, 0, line_num - 1, 1, { 'U' })
+          end
+        end
+
+        vim.bo[buf].modifiable = was_modifiable
+        vim.bo[buf].modified = was_modified
+      end
+
+      local function patch_diffview_file_panel()
+        local ok, file_panel = pcall(require, 'diffview.scene.views.diff.file_panel')
+        if not ok or file_panel.FilePanel._display_untracked_as_u then
+          return
+        end
+
+        local original_redraw = file_panel.FilePanel.redraw
+        file_panel.FilePanel.redraw = function(panel)
+          original_redraw(panel)
+          display_untracked_as_u(panel.bufid)
+        end
+        file_panel.FilePanel._display_untracked_as_u = true
+      end
+
+      local function add_deleted_file_match()
+        if vim.bo.filetype ~= 'DiffviewFiles' then
+          return
+        end
+
+        if not vim.w.diffview_deleted_file_match then
+          vim.w.diffview_deleted_file_match = vim.fn.matchadd('DiffviewDeletedFile', deleted_file_match, 20)
+        end
+
+        if not vim.w.diffview_untracked_file_match then
+          vim.w.diffview_untracked_file_match = vim.fn.matchadd('DiffviewStatusUntracked', untracked_file_match, 30)
+        end
+
+        display_untracked_as_u(vim.api.nvim_get_current_buf())
+      end
+
+      set_deleted_file_hl()
+      patch_diffview_file_panel()
+
+      vim.api.nvim_create_autocmd('ColorScheme', {
+        group = deleted_file_group,
+        pattern = '*',
+        callback = set_deleted_file_hl,
+      })
+
+      vim.api.nvim_create_autocmd({ 'FileType', 'BufWinEnter', 'WinEnter' }, {
+        group = deleted_file_group,
+        pattern = '*',
+        callback = add_deleted_file_match,
+      })
 
       local function focus_left_diff_pane()
+        local ok, lib = pcall(require, 'diffview.lib')
+        local view = ok and lib.get_current_view()
+        local item = view and view.panel and view.panel:get_item_at_cursor()
+
+        if item and type(item.collapsed) == 'boolean' then
+          view.panel:toggle_item_fold(item)
+          return
+        end
+
         left_focus_request = left_focus_request + 1
         local request = left_focus_request
 
@@ -184,6 +297,9 @@ return {
 
       require('diffview').setup {
         enhanced_diff_hl = true,
+        hooks = {
+          view_closed = cleanup_diffview_buffers,
+        },
         view = {
           default = {
             layout = 'diff2_horizontal',

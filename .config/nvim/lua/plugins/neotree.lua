@@ -33,6 +33,17 @@ return {
     vim.fn.sign_define('DiagnosticSignInfo', { text = ' ', texthl = 'DiagnosticSignInfo' })
     vim.fn.sign_define('DiagnosticSignHint', { text = '󰌵', texthl = 'DiagnosticSignHint' })
 
+    local function set_neotree_git_hls()
+      vim.api.nvim_set_hl(0, 'NeoTreeGitUntracked', { fg = '#98c379' })
+    end
+
+    set_neotree_git_hls()
+
+    vim.api.nvim_create_autocmd('ColorScheme', {
+      pattern = '*',
+      callback = set_neotree_git_hls,
+    })
+
     require('neo-tree').setup {
       close_if_last_window = false, -- Close Neo-tree if it is the last window left in the tab
       popup_border_style = 'rounded',
