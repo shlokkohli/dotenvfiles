@@ -249,6 +249,34 @@ end, { desc = 'Go to 75% of text line', noremap = true })
 vim.keymap.set({ 'n', 'v', 'o' }, '0', '^', { desc = 'Go to first non-blank character', noremap = true })
 vim.keymap.set({ 'n', 'v', 'o' }, '^', '0', { desc = 'Go to absolute start of line', noremap = true })
 
+local last_dollar_motion = nil
+local uv = vim.uv or vim.loop
+
+vim.keymap.set('n', '$', function()
+  vim.cmd('normal! ' .. vim.v.count1 .. '$')
+  last_dollar_motion = {
+    bufnr = vim.api.nvim_get_current_buf(),
+    winid = vim.api.nvim_get_current_win(),
+    time = uv.hrtime(),
+  }
+end, { desc = 'Go to end of line', silent = true })
+
+vim.keymap.set('n', 'I', function()
+  local just_pressed_dollar = last_dollar_motion
+    and last_dollar_motion.bufnr == vim.api.nvim_get_current_buf()
+    and last_dollar_motion.winid == vim.api.nvim_get_current_win()
+    and (uv.hrtime() - last_dollar_motion.time) < 300000000
+
+  if just_pressed_dollar then
+    vim.cmd 'startinsert'
+  else
+    vim.cmd 'normal! ^'
+    vim.cmd 'startinsert'
+  end
+
+  last_dollar_motion = nil
+end, { desc = 'Insert at line start, or after fast $ typo', silent = true })
+
 -- Resize with arrows
 local function resize_visible_neotree(delta)
   for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do

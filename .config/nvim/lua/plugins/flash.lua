@@ -31,6 +31,9 @@ return {
     })
   end,
   opts = {
+    search = {
+      multi_window = false,
+    },
     label = {
       after = false,
       before = false,
