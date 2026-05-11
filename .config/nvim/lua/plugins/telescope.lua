@@ -71,6 +71,10 @@ return {
       return vim.tbl_extend('force', telescope_close_mappings, mappings)
     end
 
+    local function clear_prompt(prompt_bufnr)
+      action_state.get_current_picker(prompt_bufnr):set_prompt ''
+    end
+
     local function open_telescope(key, open_picker)
       active_telescope_key = key
       open_picker()
@@ -371,10 +375,12 @@ return {
           i = with_telescope_close_mappings {
             ['<C-/>'] = false,
             ['<C-_>'] = false,
-            ['<C-u>'] = actions.preview_scrolling_up,
+            ['<C-u>'] = clear_prompt,
             ['<C-d>'] = actions.preview_scrolling_down,
             ['<C-k>'] = require('telescope.actions').move_selection_previous, -- move to prev result
             ['<C-j>'] = require('telescope.actions').move_selection_next, -- move to next result
+            ['<D-BS>'] = clear_prompt,
+            ['\x1b[127;9u'] = clear_prompt,
             -- Custom select: re-applies cursor AFTER neo-tree/barbar BufEnter callbacks settle
             ['<CR>'] = function(prompt_bufnr)
               local entry = require('telescope.actions.state').get_selected_entry()

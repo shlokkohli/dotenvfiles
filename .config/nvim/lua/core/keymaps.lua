@@ -456,7 +456,7 @@ vim.keymap.set('n', '˙', '5zh', { silent = true }) -- Option+H
 -- Option-Backspace deletes one shell-style/text-object chunk, so
 -- `font-semibold` becomes `font` before the next press deletes `font`.
 local function delete_option_backspace_chunk()
-  local row, col = unpack(vim.api.nvim_win_get_cursor(0))
+  local _, col = unpack(vim.api.nvim_win_get_cursor(0))
   local mode = vim.fn.mode()
   local line = vim.api.nvim_get_current_line()
 
@@ -469,7 +469,6 @@ local function delete_option_backspace_chunk()
   end
 
   local before = line:sub(1, col)
-  local after = line:sub(col + 1)
   local start = col
 
   while start > 0 and before:sub(start, start):match('%s') do
@@ -479,9 +478,7 @@ local function delete_option_backspace_chunk()
   local chunk_end = start
 
   if chunk_end == 0 then
-    vim.api.nvim_set_current_line(after)
-    vim.api.nvim_win_set_cursor(0, { row, 0 })
-    return ''
+    return '<C-G>u' .. string.rep('<BS>', col)
   end
 
   local char = before:sub(chunk_end, chunk_end)
@@ -500,13 +497,15 @@ local function delete_option_backspace_chunk()
     end
   end
 
-  local prefix = before:sub(1, start)
-  vim.api.nvim_set_current_line(prefix .. after)
-  vim.api.nvim_win_set_cursor(0, { row, #prefix })
-  return ''
+  return '<C-G>u' .. string.rep('<BS>', col - start)
 end
 
 vim.keymap.set('i', '<M-BS>', delete_option_backspace_chunk, { expr = true, noremap = true })
+
+-- Command-Backspace clears the current insert line. Ghostty sends the custom
+-- escape sequence below because terminals do not consistently pass Cmd keys.
+vim.keymap.set('i', '<D-BS>', '<C-G>u<C-u><C-o>D', { noremap = true })
+vim.keymap.set('i', '\x1b[127;9u', '<C-G>u<C-u><C-o>D', { noremap = true })
 
 -- Insert mode: csl instantly expands to console.log()
 vim.keymap.set('i', 'csl', 'console.log', { noremap = true })
