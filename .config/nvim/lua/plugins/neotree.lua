@@ -44,6 +44,97 @@ return {
       callback = set_neotree_git_hls,
     })
 
+    local function trash_paths(paths)
+      if vim.fn.has 'mac' == 1 then
+        local trash_dir = vim.fn.expand '~/.Trash'
+        local uv = vim.uv or vim.loop
+        vim.fn.mkdir(trash_dir, 'p')
+
+        local errors = {}
+        for _, path in ipairs(paths) do
+          local base = vim.fn.fnamemodify(path, ':t')
+          local target = trash_dir .. '/' .. base
+          local counter = 0
+
+          while uv.fs_stat(target) do
+            counter = counter + 1
+            target = trash_dir .. '/' .. base .. ' ' .. os.date('%Y%m%d%H%M%S') .. '-' .. counter
+          end
+
+          local result = vim.fn.system({ 'mv', path, target })
+          if vim.v.shell_error ~= 0 then
+            table.insert(errors, result)
+          end
+        end
+
+        return table.concat(errors, '\n'), #errors
+      end
+
+      local trash_cmd = nil
+      if vim.fn.executable 'trash-put' == 1 then
+        trash_cmd = { 'trash-put' }
+      elseif vim.fn.executable 'gio' == 1 then
+        trash_cmd = { 'gio', 'trash' }
+      elseif vim.fn.executable 'trash' == 1 then
+        trash_cmd = { 'trash' }
+      end
+
+      if not trash_cmd then
+        return 'No trash command found. Install trash-cli, gio, or trash.', 1
+      end
+
+      return vim.fn.system(vim.list_extend(trash_cmd, paths)), vim.v.shell_error
+    end
+
+    local function refresh_neotree(state)
+      require('neo-tree.sources.manager').refresh(state.name)
+    end
+
+    local function close_trashed_buffers(paths)
+      for _, path in ipairs(paths) do
+        local bufnr = vim.fn.bufnr(path)
+        if bufnr ~= -1 then
+          vim.api.nvim_buf_delete(bufnr, { force = true })
+        end
+      end
+    end
+
+    local function confirm_trash(paths)
+      local label = #paths == 1 and vim.fn.fnamemodify(paths[1], ':t') or #paths .. ' items'
+      return vim.fn.confirm('Move ' .. label .. ' to Trash?', '&Yes\n&No', 1) == 1
+    end
+
+    local function trash_nodes(state, nodes)
+      local paths = {}
+      for _, node in pairs(nodes) do
+        if node.type ~= 'file' and node.type ~= 'directory' then
+          vim.notify('Only files and directories can be moved to Trash', vim.log.levels.WARN)
+          return
+        end
+
+        if node:get_depth() == 1 then
+          vim.notify('Neo-tree root cannot be moved to Trash from here', vim.log.levels.ERROR)
+          return
+        end
+
+        table.insert(paths, node.path)
+      end
+
+      if #paths == 0 or not confirm_trash(paths) then
+        return
+      end
+
+      local output, code = trash_paths(paths)
+      if code ~= 0 then
+        vim.notify('Could not move to Trash: ' .. output, vim.log.levels.ERROR)
+        return
+      end
+
+      close_trashed_buffers(paths)
+      refresh_neotree(state)
+      vim.notify('Moved to Trash: ' .. (#paths == 1 and vim.fn.fnamemodify(paths[1], ':t') or #paths .. ' items'))
+    end
+
     require('neo-tree').setup {
       close_if_last_window = false, -- Close Neo-tree if it is the last window left in the tab
       popup_border_style = 'rounded',
@@ -146,6 +237,13 @@ return {
           local width = vim.api.nvim_win_get_width(0)
           vim.api.nvim_win_set_width(0, width + 2)
         end,
+        trash = function(state)
+          local node = state.tree:get_node()
+          trash_nodes(state, { node })
+        end,
+        trash_visual = function(state, selected_nodes)
+          trash_nodes(state, selected_nodes)
+        end,
       },
       window = {
         position = 'left',
@@ -188,7 +286,7 @@ return {
             },
           },
           ['A'] = 'add_directory', -- also accepts the optional config.show_path option like "add". this also supports BASH style brace expansion.
-          ['d'] = 'delete',
+          ['d'] = 'trash',
           ['r'] = 'rename',
           ['y'] = 'copy_to_clipboard',
           ['x'] = 'cut_to_clipboard',

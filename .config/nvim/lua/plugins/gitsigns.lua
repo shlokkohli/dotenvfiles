@@ -295,6 +295,17 @@ return {
         end)
       end
 
+      local function confirm_restore_entry()
+        local ok, lib = pcall(require, 'diffview.lib')
+        local view = ok and lib.get_current_view()
+        local file = view and view.infer_cur_file and view:infer_cur_file()
+        local name = file and file.path and vim.fn.fnamemodify(file.path, ':t') or 'this file'
+
+        if vim.fn.confirm('Discard changes in ' .. name .. '?', '&Yes\n&No', 1) == 1 then
+          actions.restore_entry()
+        end
+      end
+
       require('diffview').setup {
         enhanced_diff_hl = true,
         hooks = {
@@ -315,6 +326,8 @@ return {
           },
           file_panel = {
             { 'n', '<cr>', focus_left_diff_pane, { desc = 'Open selected file and focus left diff' } },
+            { 'n', 'd', confirm_restore_entry, { desc = 'Discard selected file changes' } },
+            { 'n', 'X', confirm_restore_entry, { desc = 'Restore entry to the state on the left side' } },
             { 'n', '<leader>e', actions.toggle_files, { desc = 'Toggle the file panel' } },
             { 'n', '<leader>b', false },
           },

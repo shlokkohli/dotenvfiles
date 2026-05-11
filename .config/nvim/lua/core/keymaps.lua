@@ -453,8 +453,60 @@ vim.keymap.set('n', '<M-h>', '5zh', { silent = true })
 vim.keymap.set('n', '¬', '5zl', { silent = true }) -- Option+L
 vim.keymap.set('n', '˙', '5zh', { silent = true }) -- Option+H
 
--- option backspace to remove word in insert mode
-vim.keymap.set('i', '<M-BS>', '<C-G>u<C-W>', { noremap = true })
+-- Option-Backspace deletes one shell-style/text-object chunk, so
+-- `font-semibold` becomes `font` before the next press deletes `font`.
+local function delete_option_backspace_chunk()
+  local row, col = unpack(vim.api.nvim_win_get_cursor(0))
+  local mode = vim.fn.mode()
+  local line = vim.api.nvim_get_current_line()
+
+  if col == 0 then
+    return '<C-G>u<BS>'
+  end
+
+  if not mode:match('^[iR]') and col < #line then
+    col = col + 1
+  end
+
+  local before = line:sub(1, col)
+  local after = line:sub(col + 1)
+  local start = col
+
+  while start > 0 and before:sub(start, start):match('%s') do
+    start = start - 1
+  end
+
+  local chunk_end = start
+
+  if chunk_end == 0 then
+    vim.api.nvim_set_current_line(after)
+    vim.api.nvim_win_set_cursor(0, { row, 0 })
+    return ''
+  end
+
+  local char = before:sub(chunk_end, chunk_end)
+
+  if char:match('[%w_]') then
+    while start > 0 and before:sub(start, start):match('[%w_]') do
+      start = start - 1
+    end
+
+    if start > 0 and before:sub(start, start):match('[^%w_%s]') then
+      start = start - 1
+    end
+  else
+    while start > 0 and before:sub(start, start):match('[^%w_%s]') do
+      start = start - 1
+    end
+  end
+
+  local prefix = before:sub(1, start)
+  vim.api.nvim_set_current_line(prefix .. after)
+  vim.api.nvim_win_set_cursor(0, { row, #prefix })
+  return ''
+end
+
+vim.keymap.set('i', '<M-BS>', delete_option_backspace_chunk, { expr = true, noremap = true })
 
 -- Insert mode: csl instantly expands to console.log()
 vim.keymap.set('i', 'csl', 'console.log', { noremap = true })

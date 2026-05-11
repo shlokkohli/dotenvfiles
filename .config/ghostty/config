@@ -5,7 +5,7 @@ font-size = 13
 keybind = ctrl+j=unbind
 keybind = cmd+enter=ignore
 keybind = ctrl+backspace=text:\x17
-keybind = alt+backspace=text:\x17
+keybind = alt+backspace=text:\x1b\x7f
 
 # Glass effect transparency
 background-opacity = 0.94
