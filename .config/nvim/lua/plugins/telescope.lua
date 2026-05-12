@@ -360,7 +360,7 @@ return {
           '--with-filename',
           '--line-number',
           '--column',
-          '--smart-case',
+          '--ignore-case',
           '--fixed-strings',
           '--glob',
           '!**/.next/**',
