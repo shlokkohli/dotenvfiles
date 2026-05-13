@@ -72,7 +72,9 @@ vim.keymap.set('i', '<A-k>', '<Esc>:m .-2<CR>==gi', { silent = true })
 vim.keymap.set('i', '<A-j>', '<Esc>:m .+1<CR>==gi', { silent = true })
 
 -- Switch to insert mode
-vim.keymap.set('i', 'jk', '<Esc>', { noremap = true, silent = true })
+for _, escape_sequence in ipairs({ 'jk', 'Jk', 'jK', 'JK' }) do
+  vim.keymap.set('i', escape_sequence, '<Esc>', { noremap = true, silent = true })
+end
 
 -- Disable the spacebar key's default behavior in Normal and Visual modes
 vim.keymap.set({ 'n', 'v' }, '<Space>', '<Nop>', { silent = true })
