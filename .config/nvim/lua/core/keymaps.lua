@@ -261,6 +261,8 @@ vim.keymap.set('n', '$', function()
   }
 end, { desc = 'Go to end of line', silent = true })
 
+vim.keymap.set('x', '$', 'g_', { desc = 'Select to end of visible text', noremap = true, silent = true })
+
 vim.keymap.set('n', 'I', function()
   local just_pressed_dollar = last_dollar_motion
     and last_dollar_motion.bufnr == vim.api.nvim_get_current_buf()
