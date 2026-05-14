@@ -7,7 +7,7 @@ return {
 
     hooks.register(hooks.type.HIGHLIGHT_SETUP, function()
       vim.api.nvim_set_hl(0, 'IblIndent', { fg = '#363a4f', nocombine = true })
-      vim.api.nvim_set_hl(0, 'IblScope', { fg = '#5b6078', nocombine = true })
+      vim.api.nvim_set_hl(0, 'IblScope', { fg = '#7c8098', nocombine = true })
     end)
 
     require('ibl').setup {
@@ -22,7 +22,7 @@ return {
         highlight = 'IblScope',
         show_start = false,
         show_end = false,
-        show_exact_scope = false,
+        show_exact_scope = true,
       },
       exclude = {
         buftypes = {

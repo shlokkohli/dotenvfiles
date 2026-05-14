@@ -366,6 +366,8 @@ return {
           '!**/.next/**',
           '--glob',
           '!**/.cache/**',
+          '--glob',
+          '!**/.nitro/**',
         },
         preview = {
           treesitter = false,
@@ -449,6 +451,7 @@ return {
             '--exclude', '.git',
             '--exclude', '.next',
             '--exclude', '.cache',
+            '--exclude', '.nitro',
             '--exclude', '.venv',
             '--exclude', '.turbo',
             '--exclude', '.husky',
@@ -462,7 +465,7 @@ return {
           },
         },
         live_grep = {
-          file_ignore_patterns = { 'node_modules', 'generated', '%.git', '%.next', '%.cache', '%.venv', '%.turbo', '%.husky', '__pycache__', '_pycache', 'package%-lock%.json$' },
+          file_ignore_patterns = { 'node_modules', 'generated', '%.git', '%.next', '%.cache', '%.nitro', '%.venv', '%.turbo', '%.husky', '__pycache__', '_pycache', 'package%-lock%.json$' },
           additional_args = function(_)
             return { '--hidden' }
           end,
@@ -491,6 +494,15 @@ return {
       current_buffer_literal_find(word, true)
     end
 
+    local function hidden_grep_args_without_exact_env()
+      return {
+        '--hidden',
+        '--glob', '!.env',
+        '--glob', '!**/.env',
+        '--glob', '!**/.git/**',
+      }
+    end
+
     local function literal_grep(search, opts)
       if not search or search == '' then
         return
@@ -503,6 +515,7 @@ return {
         '--glob', '!.git/**',
         '--glob', '!**/.next/**',
         '--glob', '!**/.cache/**',
+        '--glob', '!**/.nitro/**',
         '--glob', '!.venv/**',
         '--glob', '!**/__pycache__/**',
         '--glob', '!**/_pycache/**',
@@ -785,6 +798,7 @@ return {
     vim.keymap.set(telescope_modes, '<leader>sc', toggle_telescope('<leader>sc', function()
       builtin.grep_string {
         search = vim.fn.expand '<cword>',
+        additional_args = hidden_grep_args_without_exact_env,
       } -- uses global default preview_width = 0.55
     end), { desc = '[S]earch [C]urrent word' })
     vim.keymap.set({ 'n', 'x' }, '<leader>sg', toggle_telescope('<leader>sg', live_grep_smart), { desc = '[S]earch by [G]rep' })
