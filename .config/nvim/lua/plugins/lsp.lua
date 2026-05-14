@@ -483,7 +483,19 @@ return {
         capabilities = {
           offsetEncoding = { 'utf-8' },
         },
-      }, -- gopls = {},
+      },
+      gopls = {
+        on_attach = disable_formatting,
+        settings = {
+          gopls = {
+            analyses = {
+              unusedparams = true,
+              shadow = true,
+            },
+            staticcheck = true,
+          },
+        },
+      },
       -- pyright = {},
       -- rust_analyzer = {},
       -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs

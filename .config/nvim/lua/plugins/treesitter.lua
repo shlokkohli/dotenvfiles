@@ -1,53 +1,35 @@
 return { -- Highlight, edit, and navigate code
   'nvim-treesitter/nvim-treesitter',
-  build = ':TSUpdate',
-  main = 'nvim-treesitter.config', -- Sets main module to use for opts
-  -- [[ Configure Treesitter ]] See `:help nvim-treesitter`
+  -- NOTE: The new nvim-treesitter dropped ensure_installed and auto_install.
+  -- Parsers are installed via :TSInstall. The build function below installs
+  -- all required parsers when the plugin is first installed or rebuilt.
+  build = function()
+    require('nvim-treesitter.install').install {
+      'lua', 'python', 'javascript', 'jsx', 'typescript', 'tsx',
+      'vimdoc', 'vim', 'regex', 'terraform', 'sql', 'dockerfile',
+      'toml', 'json', 'java', 'groovy', 'go', 'gomod', 'gosum',
+      'gitignore', 'graphql', 'yaml', 'make', 'cmake',
+      'markdown', 'markdown_inline', 'bash',
+      'vue', 'css', 'scss', 'html', 'prisma',
+    }
+  end,
+  main = 'nvim-treesitter.config',
   opts = {
-    ensure_installed = {
-      'lua',
-      'python',
-      'ecma',
-      'javascript',
-      'jsx',
-      'typescript',
-      'vimdoc',
-      'vim',
-      'regex',
-      'terraform',
-      'sql',
-      'dockerfile',
-      'toml',
-      'json',
-      'java',
-      'groovy',
-      'go',
-      'gitignore',
-      'graphql',
-      'yaml',
-      'make',
-      'cmake',
-      'markdown',
-      'markdown_inline',
-      'bash',
-      'tsx',
-      'vue',
-      'css',
-      'scss',
-      'html',
-      'prisma',
-    },
-    -- Autoinstall languages that are not installed
-    auto_install = true,
     highlight = {
       enable = true,
-      -- Some languages depend on vim's regex highlighting system (such as Ruby) for indent rules.
-      --  If you are experiencing weird indenting issues, add the language to
-      --  the list of additional_vim_regex_highlighting and disabled languages for indent.
       additional_vim_regex_highlighting = { 'ruby' },
     },
     indent = { enable = true, disable = { 'ruby' } },
   },
+  config = function(_, opts)
+    require('nvim-treesitter.config').setup(opts)
+    vim.api.nvim_create_autocmd('FileType', {
+      pattern = { 'go', 'gomod', 'gosum' },
+      callback = function()
+        pcall(vim.treesitter.start)
+      end,
+    })
+  end,
   -- There are additional nvim-treesitter modules that you can use to interact
   -- with nvim-treesitter. You should go explore a few and see what interests you:
   --

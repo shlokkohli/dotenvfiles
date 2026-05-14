@@ -7,7 +7,7 @@ keybind = ctrl+j=unbind
 keybind = cmd+enter=ignore
 keybind = cmd+backspace=text:\x15
 keybind = ctrl+backspace=text:\x17
-keybind = alt+backspace=text:\x1b\x7f
+keybind = alt+backspace=text:\x17
 
 # Glass effect transparency
 background-opacity = 0.94
