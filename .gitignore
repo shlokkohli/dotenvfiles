@@ -7,6 +7,7 @@
 !.zshrc
 !.zshenv
 !Readme.md
+!nvim-setup.sh
 
 # Un-ignore config dirs
 !.config/

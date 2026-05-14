@@ -41,6 +41,16 @@ stow .
 
 That's it. Your shell, Neovim, Tmux, and Ghostty configs are all active.
 
+### 4. Set up Neovim (colors + LSP)
+
+Open Neovim once and let lazy.nvim finish installing plugins, then close it and run:
+
+```bash
+bash ~/dotfiles/nvim-setup.sh
+```
+
+This compiles all treesitter parsers and copies query files so syntax highlighting works immediately. LSP servers (gopls, rust_analyzer, etc.) auto-install via Mason the first time you open a file of that type.
+
 ---
 
 ## If Stow gives you a conflict error

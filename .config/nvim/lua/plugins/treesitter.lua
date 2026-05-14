@@ -9,7 +9,7 @@ return { -- Highlight, edit, and navigate code
       'vimdoc', 'vim', 'regex', 'terraform', 'sql', 'dockerfile',
       'toml', 'json', 'java', 'groovy', 'go', 'gomod', 'gosum',
       'gitignore', 'graphql', 'yaml', 'make', 'cmake',
-      'markdown', 'markdown_inline', 'bash',
+      'markdown', 'markdown_inline', 'bash', 'rust',
       'vue', 'css', 'scss', 'html', 'prisma',
     }
   end,
@@ -24,7 +24,7 @@ return { -- Highlight, edit, and navigate code
   config = function(_, opts)
     require('nvim-treesitter.config').setup(opts)
     vim.api.nvim_create_autocmd('FileType', {
-      pattern = { 'go', 'gomod', 'gosum' },
+      pattern = '*',
       callback = function()
         pcall(vim.treesitter.start)
       end,
