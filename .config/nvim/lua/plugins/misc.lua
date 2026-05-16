@@ -36,13 +36,6 @@ return {
     opts = { signs = false },
   },
   {
-    -- High-performance color highlighter
-    'norcalli/nvim-colorizer.lua',
-    config = function()
-      require('colorizer').setup()
-    end,
-  },
-  {
     -- Smooth scrolling for window movement commands (Ctrl-D, Ctrl-U, etc.)
     'karb94/neoscroll.nvim',
     config = function()

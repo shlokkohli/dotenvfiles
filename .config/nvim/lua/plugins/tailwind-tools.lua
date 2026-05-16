@@ -12,7 +12,7 @@ return {
     },
     document_color = {
       enabled = true,
-      kind = "background",
+      kind = "inline",
     },
     cmp = {
       highlight = "foreground",

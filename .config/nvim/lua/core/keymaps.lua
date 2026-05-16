@@ -165,6 +165,71 @@ vim.keymap.set('n', '<C-u>', '<C-u>zz', opts)
 vim.keymap.set('n', 'n', 'nzzzv', opts)
 vim.keymap.set('n', 'N', 'Nzzzv', opts)
 
+local function replace_in_current_file(find_text)
+  vim.ui.input({ prompt = 'Replace with: ' }, function(replace_text)
+    if replace_text == nil then
+      return
+    end
+
+    local buffer_text = table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), '\n')
+    local parts = {}
+    local count = 0
+    local start_index = 1
+
+    while true do
+      local match_start, match_end = buffer_text:find(find_text, start_index, true)
+      if not match_start then
+        table.insert(parts, buffer_text:sub(start_index))
+        break
+      end
+
+      table.insert(parts, buffer_text:sub(start_index, match_start - 1))
+      table.insert(parts, replace_text)
+      count = count + 1
+      start_index = match_end + 1
+    end
+
+    if count == 0 then
+      vim.notify('No matches found in current file', vim.log.levels.INFO)
+      return
+    end
+
+    vim.api.nvim_buf_set_lines(0, 0, -1, false, vim.split(table.concat(parts), '\n', { plain = true }))
+    vim.notify(('Replaced %d match%s in current file'):format(count, count == 1 and '' or 'es'))
+  end)
+end
+
+local function replace_visual_selection_in_current_file()
+  local mode = vim.fn.mode()
+  local visual_type = (mode == 's' or mode == 'S') and 'v' or mode
+  local lines = vim.fn.getregion(vim.fn.getpos 'v', vim.fn.getpos '.', { type = visual_type })
+  local find_text = table.concat(lines, '\n')
+
+  if find_text == '' then
+    return
+  end
+
+  local esc = vim.api.nvim_replace_termcodes('<Esc>', true, false, true)
+  vim.api.nvim_feedkeys(esc, 'n', false)
+
+  vim.schedule(function()
+    replace_in_current_file(find_text)
+  end)
+end
+
+local function prompt_replace_in_current_file()
+  vim.ui.input({ prompt = 'Find in current file: ' }, function(find_text)
+    if not find_text or find_text == '' then
+      return
+    end
+
+    replace_in_current_file(find_text)
+  end)
+end
+
+vim.keymap.set('n', '<leader>R', prompt_replace_in_current_file, { desc = 'Find and replace in current file', silent = true })
+vim.keymap.set({ 'x', 's' }, '<leader>R', replace_visual_selection_in_current_file, { desc = 'Replace selection in current file', silent = true })
+
 local function get_treesitter_node()
   local ok, node = pcall(vim.treesitter.get_node)
   if ok and node then

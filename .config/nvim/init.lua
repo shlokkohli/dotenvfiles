@@ -31,6 +31,7 @@ require('lazy').setup {
   require 'plugins.lualine',
   require 'plugins.treesitter',
   require 'plugins.surround',
+  require 'plugins.spectre',
   require 'plugins.telescope',
   require 'plugins.flash',
   require 'plugins.lsp',
