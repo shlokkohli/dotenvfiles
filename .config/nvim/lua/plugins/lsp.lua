@@ -110,7 +110,6 @@ return {
     vim.api.nvim_create_autocmd('LspAttach', {
       group = vim.api.nvim_create_augroup('kickstart-lsp-attach', { clear = true }),
       callback = function(event)
-        local format_augroup = vim.api.nvim_create_augroup('kickstart-lsp-format', { clear = false })
         -- NOTE: Remember that Lua is a real programming language, and as such it is possible
         -- to define small helper and utility functions so you don't have to repeat yourself.
         --
@@ -125,42 +124,6 @@ return {
         --  This is where a variable was first declared, or where a function is defined, etc.
         --  To jump back, press <C-t>.
         local client = vim.lsp.get_client_by_id(event.data.client_id)
-
-        vim.api.nvim_clear_autocmds { group = format_augroup, buffer = event.buf }
-        local formatting_clients = vim.lsp.get_clients {
-          bufnr = event.buf,
-          method = vim.lsp.protocol.Methods.textDocument_formatting,
-        }
-        if not vim.tbl_isempty(formatting_clients) then
-          vim.api.nvim_create_autocmd('BufWritePre', {
-            group = format_augroup,
-            buffer = event.buf,
-            callback = function()
-              local bufnr = event.buf
-              local clients = vim.lsp.get_clients {
-                bufnr = bufnr,
-                method = vim.lsp.protocol.Methods.textDocument_formatting,
-              }
-
-              if vim.tbl_isempty(clients) then
-                return
-              end
-
-              local use_null_ls = vim.iter(clients):any(function(attached_client)
-                return attached_client.name == 'null-ls'
-              end)
-
-              vim.lsp.buf.format {
-                bufnr = bufnr,
-                async = false,
-                timeout_ms = 3000,
-                filter = use_null_ls and function(attached_client)
-                  return attached_client.name == 'null-ls'
-                end or nil,
-              }
-            end,
-          })
-        end
 
         local function get_ts_client(bufnr)
           for _, c in ipairs(vim.lsp.get_clients({ bufnr = bufnr })) do

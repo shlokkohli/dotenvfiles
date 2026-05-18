@@ -36,6 +36,7 @@ require('lazy').setup {
   require 'plugins.flash',
   require 'plugins.lsp',
   require 'plugins.autocompletion',
+  require 'plugins.conform',
   require 'plugins.none-ls',
   require 'plugins.gitsigns',
   require 'plugins.alpha',
