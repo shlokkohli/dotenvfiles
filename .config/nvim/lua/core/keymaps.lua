@@ -58,12 +58,12 @@ end, { desc = 'Open line above with same indent', silent = true })
 vim.keymap.set('n', '<leader>n', ':enew<CR>', { noremap = true, silent = true })
 
 -- visual mode
-vim.keymap.set('v', '<A-Up>', ":m '<-2<CR>gv=gv", { silent = true })
-vim.keymap.set('v', '<A-Down>', ":m '>+1<CR>gv=gv", { silent = true })
-vim.keymap.set('v', '<A-k>', ":m '<-2<CR>gv=gv", { silent = true })
-vim.keymap.set('v', '<A-j>', ":m '>+1<CR>gv=gv", { silent = true })
-vim.keymap.set('v', '˚', ":m '<-2<CR>gv=gv", { silent = true })  -- macOS Option+K
-vim.keymap.set('v', '∆', ":m '>+1<CR>gv=gv", { silent = true }) -- macOS Option+J
+vim.keymap.set('v', '<A-Up>',   ":m '<-2<CR>gv", { silent = true })
+vim.keymap.set('v', '<A-Down>', ":m '>+1<CR>gv", { silent = true })
+vim.keymap.set('v', '<A-k>',    ":m '<-2<CR>gv", { silent = true })
+vim.keymap.set('v', '<A-j>',    ":m '>+1<CR>gv", { silent = true })
+vim.keymap.set('v', '˚',        ":m '<-2<CR>gv", { silent = true }) -- macOS Option+K
+vim.keymap.set('v', '∆',        ":m '>+1<CR>gv", { silent = true }) -- macOS Option+J
 
 -- insert mode
 vim.keymap.set('i', '<A-Up>', '<Esc>:m .-2<CR>==gi', { silent = true })
