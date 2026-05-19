@@ -58,12 +58,74 @@ end, { desc = 'Open line above with same indent', silent = true })
 vim.keymap.set('n', '<leader>n', ':enew<CR>', { noremap = true, silent = true })
 
 -- visual mode
-vim.keymap.set('v', '<A-Up>',   ":m '<-2<CR>gv", { silent = true })
-vim.keymap.set('v', '<A-Down>', ":m '>+1<CR>gv", { silent = true })
-vim.keymap.set('v', '<A-k>',    ":m '<-2<CR>gv", { silent = true })
-vim.keymap.set('v', '<A-j>',    ":m '>+1<CR>gv", { silent = true })
-vim.keymap.set('v', '˚',        ":m '<-2<CR>gv", { silent = true }) -- macOS Option+K
-vim.keymap.set('v', '∆',        ":m '>+1<CR>gv", { silent = true }) -- macOS Option+J
+local function set_visual_line_marks(start_line, end_line)
+  vim.fn.setpos("'<", { 0, start_line, 1, 0 })
+  vim.fn.setpos("'>", { 0, end_line, 1, 0 })
+end
+
+local function move_visual_lines(direction)
+  local cursor_line = vim.fn.line '.'
+  local anchor_line = vim.fn.line 'v'
+  local start_line = math.min(cursor_line, anchor_line)
+  local end_line = math.max(cursor_line, anchor_line)
+  local buffer_line_count = vim.api.nvim_buf_line_count(0)
+
+  if direction == 'up' then
+    if start_line == 1 then
+      set_visual_line_marks(start_line, end_line)
+      return
+    end
+
+    local previous_line = vim.api.nvim_buf_get_lines(0, start_line - 2, start_line - 1, false)
+    local selected_lines = vim.api.nvim_buf_get_lines(0, start_line - 1, end_line, false)
+    vim.api.nvim_buf_set_lines(0, start_line - 2, end_line, false, vim.list_extend(selected_lines, previous_line))
+    start_line = start_line - 1
+    end_line = end_line - 1
+  else
+    if end_line == buffer_line_count then
+      set_visual_line_marks(start_line, end_line)
+      return
+    end
+
+    local selected_lines = vim.api.nvim_buf_get_lines(0, start_line - 1, end_line, false)
+    local next_line = vim.api.nvim_buf_get_lines(0, end_line, end_line + 1, false)
+    vim.api.nvim_buf_set_lines(0, start_line - 1, end_line + 1, false, vim.list_extend(next_line, selected_lines))
+    start_line = start_line + 1
+    end_line = end_line + 1
+  end
+
+  set_visual_line_marks(start_line, end_line)
+end
+
+local function move_visual_lines_key(direction)
+  move_visual_lines(direction)
+  vim.cmd 'normal! gv'
+end
+
+vim.keymap.set('x', '<A-Up>', function()
+  move_visual_lines_key 'up'
+end, { silent = true })
+vim.keymap.set('x', '<A-Down>', function()
+  move_visual_lines_key 'down'
+end, { silent = true })
+vim.keymap.set('x', '<A-k>', function()
+  move_visual_lines_key 'up'
+end, { silent = true })
+vim.keymap.set('x', '<A-j>', function()
+  move_visual_lines_key 'down'
+end, { silent = true })
+vim.keymap.set('x', '<C-k>', function()
+  move_visual_lines_key 'up'
+end, { silent = true })
+vim.keymap.set('x', '<C-j>', function()
+  move_visual_lines_key 'down'
+end, { silent = true })
+vim.keymap.set('x', '˚', function()
+  move_visual_lines_key 'up'
+end, { silent = true }) -- macOS Option+K
+vim.keymap.set('x', '∆', function()
+  move_visual_lines_key 'down'
+end, { silent = true }) -- macOS Option+J
 
 -- insert mode
 vim.keymap.set('i', '<A-Up>', '<Esc>:m .-2<CR>==gi', { silent = true })
