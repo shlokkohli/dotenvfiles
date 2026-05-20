@@ -3,6 +3,14 @@ return {
   {
     -- Tmux & split window navigation
     'christoomey/vim-tmux-navigator',
+    init = function()
+      vim.g.tmux_navigator_no_mappings = 1
+    end,
+    config = function()
+      vim.keymap.set('n', '<C-h>', '<cmd>TmuxNavigateLeft<CR>', { silent = true })
+      vim.keymap.set('n', '<C-l>', '<cmd>TmuxNavigateRight<CR>', { silent = true })
+      vim.keymap.set('n', '<C-\\>', '<cmd>TmuxNavigatePrevious<CR>', { silent = true })
+    end,
   },
   {
     -- Detect tabstop and shiftwidth automatically

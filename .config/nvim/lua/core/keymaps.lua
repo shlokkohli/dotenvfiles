@@ -20,6 +20,8 @@ vim.keymap.set('n', '<A-Up>', ':m .-2<CR>==', { silent = true })
 vim.keymap.set('n', '<A-Down>', ':m .+1<CR>==', { silent = true })
 vim.keymap.set('n', '<A-k>', ':m .-2<CR>==', { silent = true })
 vim.keymap.set('n', '<A-j>', ':m .+1<CR>==', { silent = true })
+vim.keymap.set('n', '<C-k>', ':m .-2<CR>==', { silent = true })
+vim.keymap.set('n', '<C-j>', ':m .+1<CR>==', { silent = true })
 vim.keymap.set('n', '˚', ':m .-2<CR>==', { silent = true }) -- macOS Option+K
 vim.keymap.set('n', '∆', ':m .+1<CR>==', { silent = true }) -- macOS Option+J
 
@@ -147,6 +149,9 @@ vim.keymap.set({ 'n', 'v' }, '<Space>', '<Nop>', { silent = true })
 vim.keymap.set({ 'n', 'i', 'v', 'x', 's', 'o', 'c', 't' }, '<C-z>', '<Nop>', { silent = true, desc = 'Disable suspend' })
 
 vim.keymap.set('n', '<leader>cc', '<cmd>cclose<CR>', { desc = 'Close quickfix' })
+
+-- Avoid opening keyword help when pressing Shift+K on a visual selection.
+vim.keymap.set({ 'v', 'x', 's' }, 'K', '<Nop>', { noremap = true, silent = true })
 
 -- normal and visual mode: d = delete (no yank)
 vim.keymap.set({ 'n', 'v' }, 'd', '"_d', { noremap = true, silent = true })
@@ -505,8 +510,6 @@ vim.keymap.set('n', '<leader>se', '<C-w>=', opts) -- make split windows equal wi
 vim.keymap.set('n', '<leader>xs', '<cmd>close<CR>', opts) -- close current split window
 
 -- Navigate between splits
-vim.keymap.set('n', '<C-k>', ':wincmd k<CR>', opts)
-vim.keymap.set('n', '<C-j>', ':wincmd j<CR>', opts)
 vim.keymap.set('n', '<C-h>', ':wincmd h<CR>', opts)
 vim.keymap.set('n', '<C-l>', ':wincmd l<CR>', opts)
 
