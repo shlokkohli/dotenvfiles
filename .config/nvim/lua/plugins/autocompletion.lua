@@ -90,14 +90,12 @@ return { -- Autocompletion
           select = false,
         },
         ['<C-l>'] = cmp.mapping(function()
-          if luasnip.expand_or_locally_jumpable() then
-            luasnip.expand_or_jump()
-          end
+          local right = vim.api.nvim_replace_termcodes('<Right>', true, false, true)
+          vim.api.nvim_feedkeys(right, 'n', false)
         end, { 'i', 's' }),
         ['<C-h>'] = cmp.mapping(function()
-          if luasnip.locally_jumpable(-1) then
-            luasnip.jump(-1)
-          end
+          local left = vim.api.nvim_replace_termcodes('<Left>', true, false, true)
+          vim.api.nvim_feedkeys(left, 'n', false)
         end, { 'i', 's' }),
         ['<Tab>'] = cmp.mapping(function(fallback)
           if cmp.visible() then

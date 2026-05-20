@@ -128,6 +128,10 @@ vim.keymap.set('x', '∆', function()
 end, { silent = true }) -- macOS Option+J
 
 -- insert mode
+vim.keymap.set('i', '<C-h>', '<Left>', opts)
+vim.keymap.set('i', '<C-j>', '<Down>', opts)
+vim.keymap.set('i', '<C-k>', '<Up>', opts)
+vim.keymap.set('i', '<C-l>', '<Right>', opts)
 vim.keymap.set('i', '<A-Up>', '<Esc>:m .-2<CR>==gi', { silent = true })
 vim.keymap.set('i', '<A-Down>', '<Esc>:m .+1<CR>==gi', { silent = true })
 vim.keymap.set('i', '<A-k>', '<Esc>:m .-2<CR>==gi', { silent = true })

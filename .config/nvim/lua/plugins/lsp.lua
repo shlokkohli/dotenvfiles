@@ -47,14 +47,41 @@ return {
     -- Prefer diagnostics at the cursor (like VS Code hover on squiggles),
     -- then fall back to normal LSP hover documentation.
     local info_winid = nil
-    local function toggle_lsp_hover()
+    local function close_lsp_float()
+      local bufnr = vim.api.nvim_get_current_buf()
+
       if info_winid and vim.api.nvim_win_is_valid(info_winid) then
         vim.api.nvim_win_close(info_winid, true)
         info_winid = nil
-        return
+        return true
+      end
+
+      local existing_float = vim.b[bufnr].lsp_floating_preview
+      if existing_float and vim.api.nvim_win_is_valid(existing_float) then
+        vim.api.nvim_win_close(existing_float, true)
+        info_winid = nil
+        return true
+      end
+
+      for _, winid in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+        if vim.api.nvim_win_is_valid(winid) then
+          local ok, preview_bufnr = pcall(vim.api.nvim_win_get_var, winid, 'lsp_floating_bufnr')
+          if ok and preview_bufnr == bufnr then
+            vim.api.nvim_win_close(winid, true)
+            info_winid = nil
+            return true
+          end
+        end
       end
 
       info_winid = nil
+      return false
+    end
+
+    local function toggle_lsp_hover()
+      if close_lsp_float() then
+        return
+      end
 
       local cursor = vim.api.nvim_win_get_cursor(0)
       local line = cursor[1] - 1
@@ -82,25 +109,6 @@ return {
         max_height = 20,
         wrap = true,
       }
-
-      -- Capture the hover window after it opens.
-      vim.schedule(function()
-        for _, winid in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
-          if vim.api.nvim_win_is_valid(winid) then
-            local cfg = vim.api.nvim_win_get_config(winid)
-            if cfg.relative ~= '' then
-              local buf = vim.api.nvim_win_get_buf(winid)
-              if buf ~= vim.api.nvim_get_current_buf() then
-                local ft = vim.bo[buf].filetype
-                if ft == 'markdown' or vim.startswith(ft, 'markdown') then
-                  info_winid = winid
-                  return
-                end
-              end
-            end
-          end
-        end
-      end)
     end
 
     --  This function gets run when an LSP attaches to a particular buffer.
