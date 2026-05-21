@@ -75,6 +75,32 @@ return {
             return
           end
 
+          local pair_closers = {
+            ['{'] = '}',
+            ['['] = ']',
+            ['('] = ')',
+          }
+
+          local opener = before:sub(-1)
+          local closer = pair_closers[opener]
+          if closer and after:match('^%s*' .. vim.pesc(closer)) then
+            local new_lines = { before, inner_indent, indent .. after }
+            vim.cmd('stopinsert')
+            vim.api.nvim_buf_set_lines(0, row - 1, row, false, new_lines)
+            vim.api.nvim_win_set_cursor(0, { row + 1, #inner_indent })
+            vim.schedule(function() vim.cmd('startinsert!') end)
+            return
+          end
+
+          if closer and after:match '^%s*$' then
+            local new_lines = { before, inner_indent, indent .. closer .. after }
+            vim.cmd('stopinsert')
+            vim.api.nvim_buf_set_lines(0, row - 1, row, false, new_lines)
+            vim.api.nvim_win_set_cursor(0, { row + 1, #inner_indent })
+            vim.schedule(function() vim.cmd('startinsert!') end)
+            return
+          end
+
           -- Default: feed a normal Enter (noremap to avoid recursion)
           local cr = vim.api.nvim_replace_termcodes('<CR>', true, true, true)
           vim.api.nvim_feedkeys(cr, 'n', false)
