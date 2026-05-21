@@ -377,7 +377,8 @@ return {
           i = with_telescope_close_mappings {
             ['<C-/>'] = false,
             ['<C-_>'] = false,
-            ['<C-u>'] = actions.preview_scrolling_up,
+            -- Ghostty sends Cmd-Backspace as <C-u>; clear pasted prompts in insert mode.
+            ['<C-u>'] = clear_prompt,
             ['<C-d>'] = actions.preview_scrolling_down,
             ['<C-k>'] = require('telescope.actions').move_selection_previous, -- move to prev result
             ['<C-j>'] = require('telescope.actions').move_selection_next, -- move to next result

@@ -61,3 +61,9 @@ bindkey '\t' _accept_or_complete
 export PATH="/Users/shlok/.antigravity/antigravity/bin:$PATH"
 
 alias cd="z"
+
+# Added by Antigravity IDE
+export PATH="/Users/shlok/.antigravity-ide/antigravity-ide/bin:$PATH"
+
+# Added by Antigravity IDE
+export PATH="/Users/shlok/.antigravity-ide/antigravity-ide/bin:$PATH"
