@@ -43,9 +43,6 @@ eval "$(zoxide init zsh)"
 # fzf
 source <(fzf --zsh)
 
-# Added by Antigravity
-export PATH="/Users/shlok/.antigravity/antigravity/bin:$PATH"
-
 # Tab to accept autosuggestion (if one exists), fallback to normal completion
 # Must be LAST — fzf and other tools rebind Tab during their init
 _accept_or_complete() {
@@ -57,13 +54,5 @@ _accept_or_complete() {
 }
 zle -N _accept_or_complete
 bindkey '\t' _accept_or_complete
-# Added by Antigravity
-export PATH="/Users/shlok/.antigravity/antigravity/bin:$PATH"
 
 alias cd="z"
-
-# Added by Antigravity IDE
-export PATH="/Users/shlok/.antigravity-ide/antigravity-ide/bin:$PATH"
-
-# Added by Antigravity IDE
-export PATH="/Users/shlok/.antigravity-ide/antigravity-ide/bin:$PATH"
