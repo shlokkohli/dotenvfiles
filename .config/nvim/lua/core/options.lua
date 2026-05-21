@@ -47,6 +47,179 @@ vim.opt.runtimepath:remove '/usr/share/vim/vimfiles' -- Separate Vim plugins fro
 vim.o.foldlevel = 99
 vim.o.foldlevelstart = 99
 vim.o.foldenable = true
+vim.opt.fillchars:append { fold = ' ' }
+
+local function get_fold_summary_text(fold_start, fold_end)
+  local hidden_lines = fold_end - fold_start
+  local line_word = hidden_lines == 1 and 'line' or 'lines'
+
+  return string.format('  +-- %d %s of code minimized', hidden_lines, line_word)
+end
+
+function _G.VSCodeFoldText()
+  return {
+    { vim.fn.getline(vim.v.foldstart), 'Normal' },
+    { get_fold_summary_text(vim.v.foldstart, vim.v.foldend), 'Folded' },
+    { string.rep(' ', vim.o.columns), 'Normal' },
+  }
+end
+
+vim.o.foldtext = 'v:lua.VSCodeFoldText()'
+
+local old_fold_virtual_lines_ns = vim.api.nvim_create_namespace 'vscode-fold-virtual-lines'
+for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
+  if vim.api.nvim_buf_is_loaded(bufnr) then
+    vim.api.nvim_buf_clear_namespace(bufnr, old_fold_virtual_lines_ns, 0, -1)
+  end
+end
+
+local smart_fold_cache = {}
+
+local ignored_fold_node_types = {
+  chunk = true,
+  document = true,
+  module = true,
+  program = true,
+  source_file = true,
+  translation_unit = true,
+}
+
+local semantic_fold_node_types = {
+  argument_list = true,
+  arguments = true,
+  array = true,
+  block = true,
+  call = true,
+  call_expression = true,
+  case_statement = true,
+  catch_clause = true,
+  class_body = true,
+  class_declaration = true,
+  class_definition = true,
+  compound_statement = true,
+  constructor = true,
+  declaration_list = true,
+  dictionary = true,
+  do_statement = true,
+  else_clause = true,
+  enum_declaration = true,
+  field_declaration_list = true,
+  for_in_statement = true,
+  for_statement = true,
+  function_call = true,
+  function_declaration = true,
+  function_definition = true,
+  function_expression = true,
+  function_item = true,
+  if_statement = true,
+  impl_item = true,
+  interface_declaration = true,
+  lambda = true,
+  lambda_expression = true,
+  list = true,
+  match_statement = true,
+  method_declaration = true,
+  method_definition = true,
+  object = true,
+  repeat_statement = true,
+  set = true,
+  statement_block = true,
+  struct_declaration = true,
+  switch_statement = true,
+  table_constructor = true,
+  trait_item = true,
+  try_statement = true,
+  tuple = true,
+  while_statement = true,
+}
+
+local function is_semantic_fold_node(node_type)
+  if ignored_fold_node_types[node_type] then
+    return false
+  end
+
+  if semantic_fold_node_types[node_type] then
+    return true
+  end
+
+  return node_type:match('block$') ~= nil
+    or node_type:match('body$') ~= nil
+    or node_type:match('function') ~= nil
+    or node_type:match('method') ~= nil
+    or node_type:match('class') ~= nil
+    or node_type:match('interface') ~= nil
+end
+
+local function collect_semantic_fold_ranges(node, ranges, seen, line_count)
+  local node_type = node:type()
+  local start_row, _, end_row = node:range()
+  local start_line = start_row + 1
+  local end_line = math.min(end_row + 1, line_count)
+
+  if end_line > start_line and is_semantic_fold_node(node_type) then
+    local key = start_line .. ':' .. end_line
+    if not seen[key] then
+      seen[key] = true
+      table.insert(ranges, { start_line = start_line, end_line = end_line })
+    end
+  end
+
+  for child in node:iter_children() do
+    collect_semantic_fold_ranges(child, ranges, seen, line_count)
+  end
+end
+
+local function get_smart_fold_levels(bufnr)
+  local changedtick = vim.b[bufnr].changedtick
+  local cached = smart_fold_cache[bufnr]
+
+  if cached and cached.changedtick == changedtick and cached.filetype == vim.bo[bufnr].filetype then
+    return cached.levels
+  end
+
+  local line_count = vim.api.nvim_buf_line_count(bufnr)
+  local levels = {}
+  for line = 1, line_count do
+    levels[line] = 0
+  end
+
+  local ok, parser = pcall(vim.treesitter.get_parser, bufnr)
+  if not ok or not parser then
+    smart_fold_cache[bufnr] = {
+      changedtick = changedtick,
+      filetype = vim.bo[bufnr].filetype,
+      levels = levels,
+    }
+    return levels
+  end
+
+  local parse_ok, trees = pcall(parser.parse, parser)
+  if not parse_ok or not trees or not trees[1] then
+    return levels
+  end
+
+  local ranges = {}
+  collect_semantic_fold_ranges(trees[1]:root(), ranges, {}, line_count)
+
+  for _, range in ipairs(ranges) do
+    for line = range.start_line, range.end_line do
+      levels[line] = levels[line] + 1
+    end
+  end
+
+  smart_fold_cache[bufnr] = {
+    changedtick = changedtick,
+    filetype = vim.bo[bufnr].filetype,
+    levels = levels,
+  }
+
+  return levels
+end
+
+function _G.SmartTreesitterFoldexpr(lnum)
+  local levels = get_smart_fold_levels(vim.api.nvim_get_current_buf())
+  return levels[lnum] or 0
+end
 
 local jsx_fold_cache = {}
 
@@ -155,12 +328,7 @@ end
 function _G.ReactJsxFoldexpr(lnum)
   local folds = parse_jsx_folds(vim.api.nvim_get_current_buf())
   local jsx_level = folds.levels[lnum] or 0
-  local ts_level = 0
-
-  local ok, value = pcall(vim.treesitter.foldexpr)
-  if ok then
-    ts_level = tonumber(value) or tonumber(tostring(value):match('%d+')) or 0
-  end
+  local ts_level = _G.SmartTreesitterFoldexpr(lnum)
 
   return math.max(jsx_level, ts_level)
 end
@@ -195,7 +363,7 @@ vim.api.nvim_create_autocmd({ 'BufReadPost', 'BufNewFile', 'FileType' }, {
     local ok = pcall(vim.treesitter.get_parser, 0)
     if ok then
       vim.opt_local.foldmethod = 'expr'
-      vim.opt_local.foldexpr = 'v:lua.vim.treesitter.foldexpr()'
+      vim.opt_local.foldexpr = 'v:lua.SmartTreesitterFoldexpr(v:lnum)'
     else
       vim.opt_local.foldmethod = 'indent' -- fallback for unsupported filetypes
     end
