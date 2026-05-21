@@ -87,6 +87,7 @@ local ignored_fold_node_types = {
 local semantic_fold_node_types = {
   argument_list = true,
   arguments = true,
+  arrow_function = true,
   array = true,
   block = true,
   call = true,
@@ -103,6 +104,7 @@ local semantic_fold_node_types = {
   do_statement = true,
   else_clause = true,
   enum_declaration = true,
+  element = true,
   field_declaration_list = true,
   for_in_statement = true,
   for_statement = true,
@@ -123,10 +125,13 @@ local semantic_fold_node_types = {
   object = true,
   repeat_statement = true,
   set = true,
+  script_element = true,
   statement_block = true,
   struct_declaration = true,
+  style_element = true,
   switch_statement = true,
   table_constructor = true,
+  template_element = true,
   trait_item = true,
   try_statement = true,
   tuple = true,
@@ -150,11 +155,12 @@ local function is_semantic_fold_node(node_type)
     or node_type:match('interface') ~= nil
 end
 
-local function collect_semantic_fold_ranges(node, ranges, seen, line_count)
+local function collect_semantic_fold_ranges(node, ranges, seen, line_count, line_offset)
+  line_offset = line_offset or 0
   local node_type = node:type()
   local start_row, _, end_row = node:range()
-  local start_line = start_row + 1
-  local end_line = math.min(end_row + 1, line_count)
+  local start_line = start_row + line_offset + 1
+  local end_line = math.min(end_row + line_offset + 1, line_count)
 
   if end_line > start_line and is_semantic_fold_node(node_type) then
     local key = start_line .. ':' .. end_line
@@ -165,7 +171,58 @@ local function collect_semantic_fold_ranges(node, ranges, seen, line_count)
   end
 
   for child in node:iter_children() do
-    collect_semantic_fold_ranges(child, ranges, seen, line_count)
+    collect_semantic_fold_ranges(child, ranges, seen, line_count, line_offset)
+  end
+end
+
+local function get_vue_script_parser_lang(script_text)
+  local lang = script_text:match('<script[^>]-lang%s*=%s*["\']?([%w_-]+)')
+  lang = lang and lang:lower() or nil
+
+  if lang == 'ts' or lang == 'typescript' then
+    return 'typescript'
+  end
+
+  if lang == 'tsx' then
+    return 'tsx'
+  end
+
+  if lang == 'jsx' then
+    return 'jsx'
+  end
+
+  return 'javascript'
+end
+
+local function collect_vue_embedded_script_fold_ranges(node, bufnr, ranges, seen, line_count)
+  if node:type() == 'script_element' then
+    local raw_text_node = nil
+
+    for child in node:iter_children() do
+      if child:type() == 'raw_text' then
+        raw_text_node = child
+        break
+      end
+    end
+
+    if raw_text_node then
+      local script_text = vim.treesitter.get_node_text(node, bufnr)
+      local raw_text = vim.treesitter.get_node_text(raw_text_node, bufnr)
+      local parser_lang = get_vue_script_parser_lang(script_text)
+      local ok, parser = pcall(vim.treesitter.get_string_parser, raw_text, parser_lang)
+
+      if ok and parser then
+        local parse_ok, trees = pcall(parser.parse, parser)
+        if parse_ok and trees and trees[1] then
+          local raw_start_row = raw_text_node:range()
+          collect_semantic_fold_ranges(trees[1]:root(), ranges, seen, line_count, raw_start_row)
+        end
+      end
+    end
+  end
+
+  for child in node:iter_children() do
+    collect_vue_embedded_script_fold_ranges(child, bufnr, ranges, seen, line_count)
   end
 end
 
@@ -199,7 +256,13 @@ local function get_smart_fold_levels(bufnr)
   end
 
   local ranges = {}
-  collect_semantic_fold_ranges(trees[1]:root(), ranges, {}, line_count)
+  local seen = {}
+  local root = trees[1]:root()
+  collect_semantic_fold_ranges(root, ranges, seen, line_count)
+
+  if vim.bo[bufnr].filetype == 'vue' then
+    collect_vue_embedded_script_fold_ranges(root, bufnr, ranges, seen, line_count)
+  end
 
   for _, range in ipairs(ranges) do
     for line = range.start_line, range.end_line do
@@ -334,6 +397,10 @@ function _G.ReactJsxFoldexpr(lnum)
 end
 
 function _G.ReactJsxEnclosingFoldStart()
+  if vim.bo.filetype ~= 'javascriptreact' and vim.bo.filetype ~= 'typescriptreact' then
+    return nil
+  end
+
   local bufnr = vim.api.nvim_get_current_buf()
   local cursor_line = vim.api.nvim_win_get_cursor(0)[1]
   local folds = parse_jsx_folds(bufnr)

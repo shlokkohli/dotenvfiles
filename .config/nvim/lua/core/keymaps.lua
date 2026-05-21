@@ -340,12 +340,13 @@ local function get_jsx_fold_node()
 end
 
 vim.keymap.set('n', 'za', function()
+  local is_jsx_filetype = vim.bo.filetype == 'javascriptreact' or vim.bo.filetype == 'typescriptreact'
   local node = get_jsx_fold_node()
   local start_row = nil
 
   if node then
     start_row = node:range() + 1
-  elseif _G.ReactJsxEnclosingFoldStart then
+  elseif is_jsx_filetype and _G.ReactJsxEnclosingFoldStart then
     start_row = _G.ReactJsxEnclosingFoldStart()
   end
 
