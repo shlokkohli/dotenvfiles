@@ -893,6 +893,96 @@ local function select_range(start_row, start_col, end_row, end_col)
   vim.fn.setpos('.', { 0, end_row + 1, end_col, 0 })
 end
 
+local element_node_types = {
+  element = true,
+  jsx_element = true,
+  jsx_self_closing_element = true,
+}
+
+local opening_tag_node_types = {
+  jsx_opening_element = true,
+  start_tag = true,
+}
+
+local closing_tag_node_types = {
+  jsx_closing_element = true,
+  end_tag = true,
+}
+
+local self_closing_tag_node_types = {
+  jsx_self_closing_element = true,
+  self_closing_tag = true,
+}
+
+local function get_tag_element_node()
+  local ok, node = pcall(vim.treesitter.get_node)
+  if not ok then
+    node = nil
+  end
+
+  if not node then
+    local parser_ok, parser = pcall(vim.treesitter.get_parser, 0)
+    if not parser_ok or not parser then
+      return nil
+    end
+
+    local cursor = vim.api.nvim_win_get_cursor(0)
+    local row = cursor[1] - 1
+    local col = cursor[2]
+    local tree = parser:parse()[1]
+    node = tree and tree:root():named_descendant_for_range(row, col, row, col)
+  end
+
+  while node do
+    if element_node_types[node:type()] then
+      return node
+    end
+
+    node = node:parent()
+  end
+
+  return nil
+end
+
+local function find_direct_child_by_type(node, types)
+  for child in node:iter_children() do
+    if types[child:type()] then
+      return child
+    end
+  end
+
+  return nil
+end
+
+local function select_tag(inner)
+  local node = get_tag_element_node()
+  if not node then
+    vim.notify('No Treesitter tag found under cursor', vim.log.levels.INFO)
+    return
+  end
+
+  if not inner then
+    select_range(node:range())
+    return
+  end
+
+  if self_closing_tag_node_types[node:type()] or find_direct_child_by_type(node, self_closing_tag_node_types) then
+    vim.notify('Self-closing tag has no inner content', vim.log.levels.INFO)
+    return
+  end
+
+  local opening = find_direct_child_by_type(node, opening_tag_node_types)
+  local closing = find_direct_child_by_type(node, closing_tag_node_types)
+  if not opening or not closing then
+    vim.notify('No matching tag pair found under cursor', vim.log.levels.INFO)
+    return
+  end
+
+  local start_row, start_col = select(3, opening:range())
+  local end_row, end_col = closing:range()
+  select_range(start_row, start_col, end_row, end_col)
+end
+
 local function python_def_indent(line)
   return line:match('^(%s*)async%s+def%s+') or line:match('^(%s*)def%s+')
 end
@@ -1028,3 +1118,11 @@ end, { desc = 'Select around function', silent = true })
 vim.keymap.set('n', 'vif', function()
   select_function(true)
 end, { desc = 'Select inside function', silent = true })
+
+vim.keymap.set({ 'x', 'o' }, 'at', function()
+  select_tag(false)
+end, { desc = 'Around tag', silent = true })
+
+vim.keymap.set({ 'x', 'o' }, 'it', function()
+  select_tag(true)
+end, { desc = 'Inside tag', silent = true })
