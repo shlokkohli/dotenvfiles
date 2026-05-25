@@ -136,6 +136,9 @@ local semantic_fold_node_types = {
   try_statement = true,
   tuple = true,
   while_statement = true,
+  jsx_element = true,
+  jsx_fragment = true,
+  jsx_self_closing_element = true,
 }
 
 local function is_semantic_fold_node(node_type)
@@ -173,6 +176,50 @@ local function collect_semantic_fold_ranges(node, ranges, seen, line_count, line
   for child in node:iter_children() do
     collect_semantic_fold_ranges(child, ranges, seen, line_count, line_offset)
   end
+end
+
+local function build_fold_data(line_count, ranges)
+  local normalized_ranges = {}
+  local starts = {}
+  local ends = {}
+  local deltas = {}
+
+  for _, range in ipairs(ranges) do
+    local start_line = math.max(1, math.min(range.start_line, line_count))
+    local end_line = math.max(start_line, math.min(range.end_line, line_count))
+
+    if end_line > start_line then
+      table.insert(normalized_ranges, { start_line = start_line, end_line = end_line })
+      starts[start_line] = true
+      ends[end_line] = true
+      deltas[start_line] = (deltas[start_line] or 0) + 1
+      deltas[end_line + 1] = (deltas[end_line + 1] or 0) - 1
+    end
+  end
+
+  local levels = {}
+  local exprs = {}
+  local active_level = 0
+
+  for line = 1, line_count do
+    active_level = active_level + (deltas[line] or 0)
+    levels[line] = active_level
+
+    if starts[line] then
+      exprs[line] = '>' .. active_level
+    elseif ends[line] then
+      exprs[line] = '<' .. active_level
+    else
+      exprs[line] = active_level
+    end
+  end
+
+  return {
+    exprs = exprs,
+    levels = levels,
+    ranges = normalized_ranges,
+    start_lines = starts,
+  }
 end
 
 local function get_vue_script_parser_lang(script_text)
@@ -226,33 +273,30 @@ local function collect_vue_embedded_script_fold_ranges(node, bufnr, ranges, seen
   end
 end
 
-local function get_smart_fold_levels(bufnr)
+local function get_smart_fold_data(bufnr)
   local changedtick = vim.b[bufnr].changedtick
   local cached = smart_fold_cache[bufnr]
 
   if cached and cached.changedtick == changedtick and cached.filetype == vim.bo[bufnr].filetype then
-    return cached.levels
+    return cached.data
   end
 
   local line_count = vim.api.nvim_buf_line_count(bufnr)
-  local levels = {}
-  for line = 1, line_count do
-    levels[line] = 0
-  end
+  local empty_data = build_fold_data(line_count, {})
 
   local ok, parser = pcall(vim.treesitter.get_parser, bufnr)
   if not ok or not parser then
     smart_fold_cache[bufnr] = {
       changedtick = changedtick,
       filetype = vim.bo[bufnr].filetype,
-      levels = levels,
+      data = empty_data,
     }
-    return levels
+    return empty_data
   end
 
   local parse_ok, trees = pcall(parser.parse, parser)
   if not parse_ok or not trees or not trees[1] then
-    return levels
+    return empty_data
   end
 
   local ranges = {}
@@ -264,24 +308,32 @@ local function get_smart_fold_levels(bufnr)
     collect_vue_embedded_script_fold_ranges(root, bufnr, ranges, seen, line_count)
   end
 
-  for _, range in ipairs(ranges) do
-    for line = range.start_line, range.end_line do
-      levels[line] = levels[line] + 1
-    end
-  end
+  local data = build_fold_data(line_count, ranges)
 
   smart_fold_cache[bufnr] = {
     changedtick = changedtick,
     filetype = vim.bo[bufnr].filetype,
-    levels = levels,
+    data = data,
   }
 
-  return levels
+  return data
 end
 
 function _G.SmartTreesitterFoldexpr(lnum)
-  local levels = get_smart_fold_levels(vim.api.nvim_get_current_buf())
-  return levels[lnum] or 0
+  local data = get_smart_fold_data(vim.api.nvim_get_current_buf())
+  return data.exprs[lnum] or 0
+end
+
+local function shortest_range_starting_at(data, lnum)
+  local best = nil
+
+  for _, range in ipairs(data.ranges) do
+    if range.start_line == lnum and (not best or range.end_line < best.end_line) then
+      best = range
+    end
+  end
+
+  return best
 end
 
 local jsx_fold_cache = {}
@@ -360,7 +412,11 @@ local function parse_jsx_folds(bufnr)
             break
           end
         end
-      elseif not is_self_closing then
+      elseif is_self_closing then
+        if start_line < end_line then
+          table.insert(ranges, { start_line = start_line, end_line = end_line })
+        end
+      else
         table.insert(stack, { name = name, line = start_line })
       end
     end
@@ -368,53 +424,66 @@ local function parse_jsx_folds(bufnr)
     pos = end_pos + 1
   end
 
-  local levels = {}
-  for i = 1, #lines do
-    levels[i] = 0
-  end
-
-  for _, range in ipairs(ranges) do
-    for line = range.start_line, range.end_line do
-      levels[line] = levels[line] + 1
-    end
-  end
+  local data = build_fold_data(#lines, ranges)
 
   cached = {
     changedtick = changedtick,
-    levels = levels,
-    ranges = ranges,
+    data = data,
   }
   jsx_fold_cache[bufnr] = cached
   return cached
 end
 
 function _G.ReactJsxFoldexpr(lnum)
-  local folds = parse_jsx_folds(vim.api.nvim_get_current_buf())
-  local jsx_level = folds.levels[lnum] or 0
-  local ts_level = _G.SmartTreesitterFoldexpr(lnum)
+  local bufnr = vim.api.nvim_get_current_buf()
+  local jsx_data = parse_jsx_folds(bufnr).data
+  local smart_data = get_smart_fold_data(bufnr)
+  local jsx_level = jsx_data.levels[lnum] or 0
+  local smart_level = smart_data.levels[lnum] or 0
 
-  return math.max(jsx_level, ts_level)
-end
-
-function _G.ReactJsxEnclosingFoldStart()
-  if vim.bo.filetype ~= 'javascriptreact' and vim.bo.filetype ~= 'typescriptreact' then
-    return nil
+  if jsx_data.start_lines[lnum] or smart_data.start_lines[lnum] then
+    return '>' .. math.max(jsx_level, smart_level)
   end
 
-  local bufnr = vim.api.nvim_get_current_buf()
-  local cursor_line = vim.api.nvim_win_get_cursor(0)[1]
-  local folds = parse_jsx_folds(bufnr)
-  local best = nil
+  local jsx_expr = jsx_data.exprs[lnum]
+  local smart_expr = smart_data.exprs[lnum]
+  local jsx_ends = type(jsx_expr) == 'string' and jsx_expr:sub(1, 1) == '<'
+  local smart_ends = type(smart_expr) == 'string' and smart_expr:sub(1, 1) == '<'
 
-  for _, range in ipairs(folds.ranges) do
-    if range.start_line <= cursor_line and cursor_line <= range.end_line then
-      if not best or (range.end_line - range.start_line) < (best.end_line - best.start_line) then
-        best = range
-      end
+  if jsx_ends or smart_ends then
+    return '<' .. math.max(jsx_level, smart_level)
+  end
+
+  return math.max(jsx_level, smart_level)
+end
+
+function _G.SmartFoldStartsAt(lnum)
+  local bufnr = vim.api.nvim_get_current_buf()
+  local smart_data = get_smart_fold_data(bufnr)
+
+  if smart_data.start_lines[lnum] then
+    return true
+  end
+
+  if vim.bo[bufnr].filetype == 'javascriptreact' or vim.bo[bufnr].filetype == 'typescriptreact' then
+    return parse_jsx_folds(bufnr).data.start_lines[lnum] == true
+  end
+
+  return false
+end
+
+function _G.SmartFoldRangeAtStart(lnum)
+  local bufnr = vim.api.nvim_get_current_buf()
+  local best = shortest_range_starting_at(get_smart_fold_data(bufnr), lnum)
+
+  if vim.bo[bufnr].filetype == 'javascriptreact' or vim.bo[bufnr].filetype == 'typescriptreact' then
+    local jsx_range = shortest_range_starting_at(parse_jsx_folds(bufnr).data, lnum)
+    if jsx_range and (not best or jsx_range.end_line < best.end_line) then
+      best = jsx_range
     end
   end
 
-  return best and best.start_line or nil
+  return best
 end
 
 vim.api.nvim_create_autocmd({ 'BufReadPost', 'BufNewFile', 'FileType' }, {

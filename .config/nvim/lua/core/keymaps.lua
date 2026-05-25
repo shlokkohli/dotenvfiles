@@ -301,68 +301,43 @@ end
 vim.keymap.set('n', '<leader>R', prompt_replace_in_current_file, { desc = 'Find and replace in current file', silent = true })
 vim.keymap.set({ 'x', 's' }, '<leader>R', replace_visual_selection_in_current_file, { desc = 'Replace selection in current file', silent = true })
 
-local function get_treesitter_node()
-  local ok, node = pcall(vim.treesitter.get_node)
-  if ok and node then
-    return node
+local function is_fold_start(line)
+  if _G.SmartFoldStartsAt and _G.SmartFoldStartsAt(line) then
+    return true
   end
 
-  local parser_ok, parser = pcall(vim.treesitter.get_parser, 0)
-  if not parser_ok or not parser then
-    return nil
+  if line <= 1 then
+    return vim.fn.foldlevel(line) > 0
   end
 
-  local cursor = vim.api.nvim_win_get_cursor(0)
-  local row = cursor[1] - 1
-  local col = cursor[2]
-  local tree = parser:parse()[1]
-  return tree and tree:root():named_descendant_for_range(row, col, row, col)
+  return vim.fn.foldlevel(line) > vim.fn.foldlevel(line - 1)
 end
 
-local function get_jsx_fold_node()
-  if vim.bo.filetype ~= 'javascriptreact' and vim.bo.filetype ~= 'typescriptreact' then
-    return nil
-  end
-
-  local node = get_treesitter_node()
-  while node do
-    local node_type = node:type()
-    if node_type == 'jsx_element' or node_type == 'jsx_fragment' then
-      local start_row, _, end_row = node:range()
-      if end_row > start_row then
-        return node
-      end
-    end
-    node = node:parent()
-  end
-
-  return nil
+local function fold_range(command, range)
+  vim.cmd(('%d,%d%s'):format(range.start_line, range.end_line, command))
 end
 
 vim.keymap.set('n', 'za', function()
-  local is_jsx_filetype = vim.bo.filetype == 'javascriptreact' or vim.bo.filetype == 'typescriptreact'
-  local node = get_jsx_fold_node()
-  local start_row = nil
+  local line = vim.api.nvim_win_get_cursor(0)[1]
+  local closed_start = vim.fn.foldclosed(line)
+  local smart_range = _G.SmartFoldRangeAtStart and _G.SmartFoldRangeAtStart(line) or nil
 
-  if node then
-    start_row = node:range() + 1
-  elseif is_jsx_filetype and _G.ReactJsxEnclosingFoldStart then
-    start_row = _G.ReactJsxEnclosingFoldStart()
-  end
-
-  if not start_row then
-    pcall(vim.cmd, 'normal! za')
+  if closed_start ~= -1 and closed_start ~= line then
     return
   end
 
-  local cursor = vim.api.nvim_win_get_cursor(0)
-  vim.api.nvim_win_set_cursor(0, { start_row, 0 })
-  pcall(vim.cmd, 'normal! za')
-
-  if vim.fn.foldclosed(start_row) == -1 then
-    vim.api.nvim_win_set_cursor(0, cursor)
+  if closed_start == line then
+    if smart_range then
+      fold_range('foldopen', smart_range)
+    else
+      pcall(vim.cmd, 'normal! za')
+    end
+  elseif smart_range then
+    fold_range('foldclose', smart_range)
+  elseif is_fold_start(line) then
+    pcall(vim.cmd, 'normal! za')
   end
-end, { desc = 'Toggle fold, preferring current JSX element', silent = true })
+end, { desc = 'Toggle fold from its first line', silent = true })
 
 local function go_to_line_percent(percent)
   local first_code_column = math.max(1, vim.fn.indent('.') + 1)
@@ -888,24 +863,33 @@ local function select_range(start_row, start_col, end_row, end_col)
     return
   end
 
+  local old_virtualedit = vim.o.virtualedit
+  if not vim.tbl_contains(vim.split(old_virtualedit, ',', { plain = true }), 'onemore') then
+    vim.o.virtualedit = old_virtualedit == '' and 'onemore' or (old_virtualedit .. ',onemore')
+  end
+
   vim.fn.setpos('.', { 0, start_row + 1, start_col + 1, 0 })
   vim.cmd('normal! v')
   vim.fn.setpos('.', { 0, end_row + 1, end_col, 0 })
+  vim.o.virtualedit = old_virtualedit
 end
 
 local element_node_types = {
   element = true,
   jsx_element = true,
+  jsx_fragment = true,
   jsx_self_closing_element = true,
 }
 
 local opening_tag_node_types = {
   jsx_opening_element = true,
+  jsx_opening_fragment = true,
   start_tag = true,
 }
 
 local closing_tag_node_types = {
   jsx_closing_element = true,
+  jsx_closing_fragment = true,
   end_tag = true,
 }
 
@@ -1126,3 +1110,11 @@ end, { desc = 'Around tag', silent = true })
 vim.keymap.set({ 'x', 'o' }, 'it', function()
   select_tag(true)
 end, { desc = 'Inside tag', silent = true })
+
+vim.keymap.set('n', 'vat', function()
+  select_tag(false)
+end, { desc = 'Select around tag', silent = true })
+
+vim.keymap.set('n', 'vit', function()
+  select_tag(true)
+end, { desc = 'Select inside tag', silent = true })
