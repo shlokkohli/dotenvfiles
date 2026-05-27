@@ -36,6 +36,8 @@ export PATH="$BUN_INSTALL/bin:$PATH"
 # Aliases
 alias c="clear"
 alias v="nvim"
+alias cd="z"
+alias lg="lazygit"
 
 # zoxide (smart cd)
 eval "$(zoxide init zsh)"
@@ -55,4 +57,3 @@ _accept_or_complete() {
 zle -N _accept_or_complete
 bindkey '\t' _accept_or_complete
 
-alias cd="z"
