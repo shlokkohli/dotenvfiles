@@ -75,6 +75,13 @@ end
 
 local smart_fold_cache = {}
 
+local markup_fold_filetypes = {
+  astro = true,
+  html = true,
+  svelte = true,
+  vue = true,
+}
+
 local ignored_fold_node_types = {
   chunk = true,
   document = true,
@@ -175,6 +182,97 @@ local function collect_semantic_fold_ranges(node, ranges, seen, line_count, line
 
   for child in node:iter_children() do
     collect_semantic_fold_ranges(child, ranges, seen, line_count, line_offset)
+  end
+end
+
+local function line_for_offset(line_starts, offset)
+  local low = 1
+  local high = #line_starts
+
+  while low <= high do
+    local mid = math.floor((low + high) / 2)
+    local next_start = line_starts[mid + 1] or math.huge
+
+    if offset < line_starts[mid] then
+      high = mid - 1
+    elseif offset >= next_start then
+      low = mid + 1
+    else
+      return mid
+    end
+  end
+
+  return #line_starts
+end
+
+local function add_fold_range(ranges, seen, start_line, end_line)
+  if end_line <= start_line then
+    return
+  end
+
+  local key = start_line .. ':' .. end_line
+  if seen[key] then
+    return
+  end
+
+  seen[key] = true
+  table.insert(ranges, { start_line = start_line, end_line = end_line })
+end
+
+local function collect_markup_tag_fold_ranges(bufnr, ranges, seen, line_count)
+  local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+  local text = table.concat(lines, '\n')
+  local line_starts = {}
+  local offset = 1
+
+  for _, line in ipairs(lines) do
+    table.insert(line_starts, offset)
+    offset = offset + #line + 1
+  end
+
+  local stack = {}
+  local pos = 1
+
+  while pos <= #text do
+    local start_pos, end_pos, tag = text:find('<(.-)>', pos)
+    if not start_pos then
+      break
+    end
+
+    local start_line = line_for_offset(line_starts, start_pos)
+    local end_line = math.min(line_for_offset(line_starts, end_pos), line_count)
+    local prefix = lines[start_line]:sub(1, start_pos - line_starts[start_line])
+    local trimmed = tag:match('^%s*(.-)%s*$') or ''
+    local is_special = trimmed:match('^[!?]') ~= nil
+    local is_closing = trimmed:match('^/') ~= nil
+    local is_self_closing = trimmed:match('/%s*$') ~= nil
+    local name = nil
+
+    if trimmed == '' then
+      name = ''
+    elseif is_closing then
+      name = trimmed:match('^/%s*([%w_.:-]+)') or ''
+    elseif not is_special then
+      name = trimmed:match('^([%w_.:-]+)')
+    end
+
+    if name then
+      if is_closing then
+        for i = #stack, 1, -1 do
+          if stack[i].name == name and (prefix:match('^%s*$') or stack[i].line == start_line) then
+            local open = table.remove(stack, i)
+            add_fold_range(ranges, seen, open.line, end_line)
+            break
+          end
+        end
+      elseif is_self_closing and prefix:match('^%s*$') then
+        add_fold_range(ranges, seen, start_line, end_line)
+      elseif prefix:match('^%s*$') then
+        table.insert(stack, { name = name, line = start_line })
+      end
+    end
+
+    pos = end_pos + 1
   end
 end
 
@@ -308,6 +406,10 @@ local function get_smart_fold_data(bufnr)
     collect_vue_embedded_script_fold_ranges(root, bufnr, ranges, seen, line_count)
   end
 
+  if markup_fold_filetypes[vim.bo[bufnr].filetype] then
+    collect_markup_tag_fold_ranges(bufnr, ranges, seen, line_count)
+  end
+
   local data = build_fold_data(line_count, ranges)
 
   smart_fold_cache[bufnr] = {
@@ -337,26 +439,6 @@ local function shortest_range_starting_at(data, lnum)
 end
 
 local jsx_fold_cache = {}
-
-local function line_for_offset(line_starts, offset)
-  local low = 1
-  local high = #line_starts
-
-  while low <= high do
-    local mid = math.floor((low + high) / 2)
-    local next_start = line_starts[mid + 1] or math.huge
-
-    if offset < line_starts[mid] then
-      high = mid - 1
-    elseif offset >= next_start then
-      low = mid + 1
-    else
-      return mid
-    end
-  end
-
-  return #line_starts
-end
 
 local function parse_jsx_folds(bufnr)
   local changedtick = vim.b[bufnr].changedtick

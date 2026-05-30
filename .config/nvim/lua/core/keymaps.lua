@@ -317,10 +317,32 @@ local function fold_range(command, range)
   vim.cmd(('%d,%d%s'):format(range.start_line, range.end_line, command))
 end
 
+local function is_smart_fold_buffer()
+  local smart_filetypes = {
+    astro = true,
+    html = true,
+    javascriptreact = true,
+    svelte = true,
+    typescriptreact = true,
+    vue = true,
+  }
+
+  if smart_filetypes[vim.bo.filetype] and _G.SmartFoldRangeAtStart then
+    return true
+  end
+
+  if vim.wo.foldmethod ~= 'expr' then
+    return false
+  end
+
+  return vim.wo.foldexpr:match 'SmartTreesitterFoldexpr' ~= nil or vim.wo.foldexpr:match 'ReactJsxFoldexpr' ~= nil
+end
+
 vim.keymap.set('n', 'za', function()
   local line = vim.api.nvim_win_get_cursor(0)[1]
   local closed_start = vim.fn.foldclosed(line)
   local smart_range = _G.SmartFoldRangeAtStart and _G.SmartFoldRangeAtStart(line) or nil
+  local use_smart_fold = is_smart_fold_buffer()
 
   if closed_start ~= -1 and closed_start ~= line then
     return
@@ -329,11 +351,15 @@ vim.keymap.set('n', 'za', function()
   if closed_start == line then
     if smart_range then
       fold_range('foldopen', smart_range)
+    elseif use_smart_fold then
+      return
     else
       pcall(vim.cmd, 'normal! za')
     end
   elseif smart_range then
     fold_range('foldclose', smart_range)
+  elseif use_smart_fold then
+    return
   elseif is_fold_start(line) then
     pcall(vim.cmd, 'normal! za')
   end
