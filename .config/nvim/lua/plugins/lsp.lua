@@ -226,8 +226,102 @@ return {
           return true
         end
 
+        local function location_start_line(loc)
+          local range = loc.range or loc.targetSelectionRange or loc.targetRange
+          return range and range.start and range.start.line or nil
+        end
+
+        local function location_line_text(loc)
+          local uri = loc.uri or loc.targetUri
+          local line = location_start_line(loc)
+          if not uri or not line then
+            return nil
+          end
+
+          local bufnr = vim.uri_to_bufnr(uri)
+          if vim.api.nvim_buf_is_loaded(bufnr) then
+            return vim.api.nvim_buf_get_lines(bufnr, line, line + 1, false)[1]
+          end
+
+          local filename = vim.uri_to_fname(uri)
+          local ok, lines = pcall(vim.fn.readfile, filename, '', line + 1)
+          if ok then
+            return lines[line + 1]
+          end
+
+          return nil
+        end
+
+        local function unique_locations(locs)
+          local seen = {}
+          local unique = {}
+          for _, loc in ipairs(locs) do
+            local uri = loc.uri or loc.targetUri or ''
+            local line = location_start_line(loc) or ''
+            local key = uri .. ':' .. line
+            if not seen[key] then
+              seen[key] = true
+              table.insert(unique, loc)
+            end
+          end
+          return unique
+        end
+
+        local function declaration_locations(locs, symbol)
+          local escaped = vim.pesc(symbol)
+          return vim.tbl_filter(function(loc)
+            local text = location_line_text(loc)
+            if not text then
+              return false
+            end
+
+            return text:match('%f[%w_]const%s+' .. escaped .. '%f[^%w_]')
+              or text:match('%f[%w_]let%s+' .. escaped .. '%f[^%w_]')
+              or text:match('%f[%w_]var%s+' .. escaped .. '%f[^%w_]')
+              or text:match('%f[%w_]function%s+' .. escaped .. '%f[^%w_]')
+              or text:match('%f[%w_]class%s+' .. escaped .. '%f[^%w_]')
+              or text:match('%f[%w_]interface%s+' .. escaped .. '%f[^%w_]')
+              or text:match('%f[%w_]type%s+' .. escaped .. '%f[^%w_]')
+          end, locs)
+        end
+
+        local function jump_or_list_locations(locs, offset_encoding, title, symbol)
+          local unique = unique_locations(locs)
+          if #unique == 0 then
+            return false
+          end
+
+          if #unique == 1 then
+            return jump_to_location(unique[1], offset_encoding)
+          end
+
+          local declarations = declaration_locations(unique, symbol)
+          if #declarations == 1 then
+            return jump_to_location(declarations[1], offset_encoding)
+          end
+
+          vim.fn.setqflist({}, ' ', {
+            title = title,
+            items = vim.lsp.util.locations_to_items(unique, offset_encoding),
+          })
+          vim.cmd 'copen'
+          return true
+        end
+
+        local function cursor_is_on_identifier()
+          local cursor = vim.api.nvim_win_get_cursor(0)
+          local line = vim.api.nvim_get_current_line()
+          local char = line:sub(cursor[2] + 1, cursor[2] + 1)
+          return char:match '[%w_$]' ~= nil
+        end
+
         map('gd', function()
+          if not cursor_is_on_identifier() then
+            return
+          end
+
           local ts = get_ts_client(event.buf)
+          local symbol = vim.fn.expand '<cword>'
           if not ts then
             if has_definition_client(event.buf) then
               -- Request definitions manually so we can deduplicate and jump
@@ -247,28 +341,7 @@ return {
                 end
                 -- Normalise to a list
                 local locs = vim.islist(result) and result or { result }
-                -- Deduplicate by uri+line
-                local seen = {}
-                local unique = {}
-                for _, loc in ipairs(locs) do
-                  local uri = loc.uri or loc.targetUri or ''
-                  local range = loc.range or loc.targetSelectionRange or loc.targetRange or {}
-                  local key = uri .. ':' .. (range.start and range.start.line or '')
-                  if not seen[key] then
-                    seen[key] = true
-                    table.insert(unique, loc)
-                  end
-                end
-                if #unique == 1 then
-                  jump_to_location(unique[1], lsp_client.offset_encoding)
-                else
-                  -- Genuinely multiple distinct targets – show quickfix list
-                  vim.fn.setqflist({}, ' ', {
-                    title = 'Definitions',
-                    items = vim.lsp.util.locations_to_items(unique, lsp_client.offset_encoding),
-                  })
-                  vim.cmd 'copen'
-                end
+                jump_or_list_locations(locs, lsp_client.offset_encoding, 'Definitions', symbol)
               end, event.buf)
             else
               vim.notify('No LSP client with definition support is attached to this buffer', vim.log.levels.WARN)
@@ -278,7 +351,6 @@ return {
 
           local win = vim.api.nvim_get_current_win()
           local params = vim.lsp.util.make_position_params(win, ts.offset_encoding)
-          local symbol = vim.fn.expand '<cword>'
           local root = ts.config.root_dir or vim.fn.getcwd()
           local line = vim.api.nvim_get_current_line()
           local is_member_access = line:find('.' .. symbol, 1, true) ~= nil
@@ -313,7 +385,8 @@ return {
               return
             end
 
-            if not jump_to_location(result[1], ts.offset_encoding) then
+            local locs = vim.islist(result) and result or { result }
+            if not jump_or_list_locations(locs, ts.offset_encoding, 'Definitions', symbol) then
               try_source_definition()
             end
           end, event.buf)

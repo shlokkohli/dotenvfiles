@@ -31,6 +31,7 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "/Users/shlok/.bun/_bun" ] && source "/Users/shlok/.bun/_bun"
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
+export PATH="/Library/PostgreSQL/17/bin:$PATH"
 
 
 # Aliases
