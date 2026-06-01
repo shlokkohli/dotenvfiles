@@ -37,7 +37,6 @@ export PATH="/Library/PostgreSQL/17/bin:$PATH"
 # Aliases
 alias c="clear"
 alias v="nvim"
-alias cd="z"
 alias lg="lazygit"
 
 # zoxide (smart cd)

@@ -671,18 +671,75 @@ vim.api.nvim_create_autocmd({ 'TextChanged', 'TextChangedI' }, {
   end,
 })
 
--- Treat .env files as shell scripts for proper syntax highlighting
+-- Filetype overrides for project-specific files.
 vim.filetype.add {
   extension = {
     prisma = 'prisma',
   },
   filename = {
     ['.env'] = 'sh',
+    ['yarn.lock'] = 'yarnlock',
   },
   pattern = {
     ['.*%.env%..*'] = 'sh', -- .env.local, .env.staging, etc.
   },
 }
+
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = 'yarnlock',
+  group = vim.api.nvim_create_augroup('yarn-lock-support', { clear = true }),
+  callback = function(event)
+    vim.api.nvim_buf_call(event.buf, function()
+      vim.opt_local.commentstring = '# %s'
+      vim.opt_local.comments = ':#'
+      vim.opt_local.foldmethod = 'manual'
+      vim.opt_local.iskeyword:append { '@', '-', '.', '/' }
+
+      vim.b.current_syntax = nil
+      vim.cmd [[
+        syntax clear
+        syntax case match
+
+        syntax match yarnLockComment /^#.*$/ contains=yarnLockTodo,@Spell
+        syntax keyword yarnLockTodo contained TODO FIXME NOTE XXX
+
+        syntax match yarnLockPackageName /@\=[A-Za-z0-9_.-][A-Za-z0-9_./-]*/ contained
+        syntax match yarnLockProtocol /\<\%(npm\|patch\|portal\|workspace\|link\|file\|exec\|git\|github\|https\?\):/ contained
+        syntax match yarnLockVersionRange /[@:^~*<>|=][A-Za-z0-9_.:+~*<>=|-]\+/ contained
+        syntax match yarnLockChecksum /\<\%(sha1\|sha512\|[0-9a-f]\{32,}\)-[A-Za-z0-9+/=]\+\|\<\%(sha1\|sha512\)-[A-Za-z0-9+/=]\+/ contained
+        syntax match yarnLockUrl /\vhttps?:\/\/[^ "'']+/ contained
+
+        syntax region yarnLockString start=/"/ skip=/\\"/ end=/"/ contains=yarnLockProtocol,yarnLockVersionRange,yarnLockUrl,yarnLockChecksum
+        syntax region yarnLockString start=/'/ skip=/\\'/ end=/'/ contains=yarnLockProtocol,yarnLockVersionRange,yarnLockUrl,yarnLockChecksum
+
+        syntax match yarnLockKey /^\S.\{-}:\s*$/ contains=yarnLockString,yarnLockPackageName,yarnLockProtocol,yarnLockVersionRange
+        syntax match yarnLockProperty /^\s\+\zs[A-Za-z][A-Za-z0-9_.-]*\ze\%(:\|\s\)/ contained
+        syntax match yarnLockNumber /\v<\d+(\.\d+){0,3}>/ contained
+        syntax keyword yarnLockBoolean true false contained
+
+        syntax region yarnLockEntry start=/^\S/ end=/^\ze\S/ contains=yarnLockKey,yarnLockComment,yarnLockField,yarnLockDependency,yarnLockString,yarnLockNumber,yarnLockBoolean keepend
+        syntax match yarnLockField /^\s\+[A-Za-z][A-Za-z0-9_.-]*\%(:\|\s\)/ contains=yarnLockProperty,yarnLockString,yarnLockProtocol,yarnLockVersionRange,yarnLockChecksum,yarnLockUrl,yarnLockNumber,yarnLockBoolean
+        syntax match yarnLockDependency /^\s\{4,}\S.\+$/ contains=yarnLockString,yarnLockPackageName,yarnLockProtocol,yarnLockVersionRange,yarnLockChecksum,yarnLockUrl,yarnLockNumber,yarnLockBoolean
+
+        highlight default link yarnLockComment Comment
+        highlight default link yarnLockTodo Todo
+        highlight default link yarnLockKey Identifier
+        highlight default link yarnLockPackageName Type
+        highlight default link yarnLockProtocol Special
+        highlight default link yarnLockVersionRange Number
+        highlight default link yarnLockChecksum Constant
+        highlight default link yarnLockUrl Underlined
+        highlight default link yarnLockString String
+        highlight default link yarnLockProperty Keyword
+        highlight default link yarnLockNumber Number
+        highlight default link yarnLockBoolean Boolean
+        highlight default link yarnLockField Normal
+        highlight default link yarnLockDependency Normal
+      ]]
+      vim.b.current_syntax = 'yarnlock'
+    end)
+  end,
+})
 
 -- .js and .ts files are always treated as plain JavaScript/TypeScript.
 -- Use .jsx / .tsx extensions for React files.
