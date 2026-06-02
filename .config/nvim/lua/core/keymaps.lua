@@ -59,6 +59,18 @@ end, { desc = 'Open line above with same indent', silent = true })
 
 vim.keymap.set('n', '<leader>n', ':enew<CR>', { noremap = true, silent = true })
 
+vim.keymap.set('c', '<CR>', function()
+  if vim.fn.getcmdtype() == ':' and vim.fn.getcmdline():match '^%s*new%s*$' then
+    return '<C-u>enew<CR>'
+  end
+
+  return '<CR>'
+end, { expr = true, noremap = true })
+
+vim.cmd [[
+  cnoreabbrev <expr> new getcmdtype() == ':' && getcmdline() ==# 'new' ? 'edit' : 'new'
+]]
+
 -- visual mode
 local function set_visual_line_marks(start_line, end_line)
   vim.fn.setpos("'<", { 0, start_line, 1, 0 })
@@ -469,6 +481,48 @@ local function buffer_goto_maybe_restore_visual(index)
     vim.cmd.BufferGoto(index)
   end
 end
+local function listed_normal_buffers()
+  return vim.tbl_filter(function(bufnr)
+    return vim.api.nvim_buf_is_valid(bufnr)
+      and vim.bo[bufnr].buflisted
+      and vim.bo[bufnr].buftype == ''
+  end, vim.api.nvim_list_bufs())
+end
+
+local function close_current_buffer(force)
+  local current = vim.api.nvim_get_current_buf()
+  local alternate = vim.fn.bufnr '#'
+  local target = nil
+
+  if
+    alternate > 0
+    and alternate ~= current
+    and vim.api.nvim_buf_is_valid(alternate)
+    and vim.bo[alternate].buflisted
+    and vim.bo[alternate].buftype == ''
+    and vim.bo[alternate].filetype ~= 'neo-tree'
+  then
+    target = alternate
+  else
+    for _, bufnr in ipairs(listed_normal_buffers()) do
+      if bufnr ~= current then
+        target = bufnr
+        break
+      end
+    end
+  end
+
+  if target then
+    vim.api.nvim_win_set_buf(0, target)
+  else
+    vim.g.skip_neotree_last_window_fallback = true
+    vim.cmd.enew()
+  end
+
+  pcall(vim.api.nvim_buf_delete, current, { force = force })
+  vim.g.skip_neotree_last_window_fallback = false
+end
+
 local restore_visual_au = vim.api.nvim_create_augroup('buffer-restore-visual', { clear = true })
 vim.api.nvim_create_autocmd('BufEnter', {
   group = restore_visual_au,
@@ -503,6 +557,12 @@ vim.keymap.set('v', '<S-Tab>', buffer_prev_maybe_restore_visual, opts)
 vim.keymap.set('n', '<leader>b', '<cmd> enew <CR>', opts) -- new buffer
 vim.keymap.set('n', '<leader>x', '<Cmd>BufferClose<CR>', vim.tbl_extend('force', opts, {
   nowait = true,
+}))
+vim.keymap.set('n', '<leader>X', function()
+  close_current_buffer(true)
+end, vim.tbl_extend('force', opts, {
+  nowait = true,
+  desc = 'Force close buffer without saving',
 }))
 
 -- Window management
@@ -711,6 +771,10 @@ vim.keymap.set('n', '>', '<Cmd>BufferMoveNext<CR>', { silent = true })
 -- Prevent neo-tree from becoming the last window
 vim.api.nvim_create_autocmd("BufDelete", {
   callback = function()
+    if vim.g.skip_neotree_last_window_fallback then
+      return
+    end
+
     vim.schedule(function()
       local wins = vim.api.nvim_list_wins()
       local non_tree_exists = false
