@@ -625,7 +625,9 @@ vim.api.nvim_create_user_command('Qa', function(opts)
 end, { bang = true, desc = 'Quit all with friendly messages' })
 
 -- Redirect :q and :qa to the friendly versions
-vim.cmd [[cabbrev W w]]
+vim.api.nvim_create_user_command('W', function(opts)
+  vim.cmd('write' .. (opts.bang and '!' or ''))
+end, { bang = true, desc = 'Save file' })
 vim.cmd [[cabbrev q Q]]
 vim.cmd [[cabbrev qa Qa]]
 

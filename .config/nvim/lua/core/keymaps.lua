@@ -60,17 +60,23 @@ end, { desc = 'Open line above with same indent', silent = true })
 vim.keymap.set('n', '<leader>n', ':enew<CR>', { noremap = true, silent = true })
 
 vim.keymap.set('c', '<CR>', function()
-  if vim.fn.getcmdtype() == ':' and vim.fn.getcmdline():match '^%s*new%s*$' then
+  if vim.fn.getcmdtype() ~= ':' then
+    return '<CR>'
+  end
+
+  local cmdline = vim.fn.getcmdline()
+  local filename = cmdline:match '^%s*new%s+(.+)%s*$'
+
+  if cmdline:match '^%s*new%s*$' then
     return '<C-u>enew<CR>'
+  end
+
+  if filename then
+    return '<C-u>edit ' .. vim.fn.fnameescape(filename) .. '<CR>'
   end
 
   return '<CR>'
 end, { expr = true, noremap = true })
-
-vim.cmd [[
-  cnoreabbrev <expr> new getcmdtype() == ':' && getcmdline() ==# 'new' ? 'edit' : 'new'
-]]
-
 -- visual mode
 local function set_visual_line_marks(start_line, end_line)
   vim.fn.setpos("'<", { 0, start_line, 1, 0 })
