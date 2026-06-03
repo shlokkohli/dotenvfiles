@@ -8,6 +8,9 @@
 !.zshenv
 !Readme.md
 !nvim-setup.sh
+!Brewfile
+!bootstrap.sh
+!.stowrc
 
 # Un-ignore config dirs
 !.config/

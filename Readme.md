@@ -8,46 +8,48 @@ Works on **macOS and Linux only**. Does not work on Windows.
 
 ## Setting up on a new machine
 
-### 1. Install GNU Stow
+### macOS (Automatic Setup)
 
-This is the only tool you need to install.
+To fully automate the setup of a new or reset macOS machine, we provide a bootstrap script. It installs Xcode Command Line Tools, Homebrew (restoring all packages, casks, and VS Code extensions defined in the `Brewfile`), Oh My Zsh with custom plugins, GNU Stow, NVM with Node v22, and symlinks all your dotfiles automatically.
 
-**macOS**
-```bash
-brew install stow
-```
+1. **Clone this repo** into your home directory as `dotfiles`:
+   ```bash
+   git clone git@github.com:shlokkohli/dotfiles.git ~/dotfiles
+   ```
 
-**Linux (Debian/Ubuntu)**
-```bash
-sudo apt install stow
-```
+2. **Run the bootstrap script**:
+   ```bash
+   bash ~/dotfiles/bootstrap.sh
+   ```
 
-### 2. Clone this repo
+3. **Restart your terminal** or run `source ~/.zshrc` to activate the configuration!
 
-Always clone it into your home directory as `dotfiles`. The folder name and location matter.
+---
 
-```bash
-git clone git@github.com:shlokkohli/dotfiles.git ~/dotfiles
-```
+### Manual Setup (or Linux)
 
-### 3. Run Stow
+If you prefer to set up manually or are on a Linux machine:
 
-This one command creates all the symlinks. It reads everything inside `~/dotfiles` and wires it up to the right places in your home directory.
+1. **Install GNU Stow**:
+   - **macOS**: `brew install stow`
+   - **Linux (Debian/Ubuntu)**: `sudo apt install stow`
 
-```bash
-cd ~/dotfiles
-stow .
-```
+2. **Clone this repo** into your home directory as `dotfiles`:
+   ```bash
+   git clone git@github.com:shlokkohli/dotfiles.git ~/dotfiles
+   ```
 
-That's it. Your shell, Neovim, Tmux, and Ghostty configs are all active.
+3. **Symlink dotfiles**:
+   ```bash
+   cd ~/dotfiles
+   stow .
+   ```
 
-### 4. Set up Neovim (colors + LSP)
-
-Open Neovim once and let lazy.nvim finish installing plugins, then close it and run:
-
-```bash
-bash ~/dotfiles/nvim-setup.sh
-```
+4. **Set up Neovim (colors + LSP)**:
+   Open Neovim once and let lazy.nvim finish installing plugins, then close it and run:
+   ```bash
+   bash ~/dotfiles/nvim-setup.sh
+   ```
 
 This compiles all treesitter parsers and copies query files so syntax highlighting works immediately. LSP servers (gopls, rust_analyzer, etc.) auto-install via Mason the first time you open a file of that type.
 

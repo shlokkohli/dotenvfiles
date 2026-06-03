@@ -1,0 +1,6 @@
+--ignore=Brewfile
+--ignore=bootstrap.sh
+--ignore=nvim-setup.sh
+--ignore=.gitignore
+--ignore=Readme.md
+--ignore=\.DS_Store
