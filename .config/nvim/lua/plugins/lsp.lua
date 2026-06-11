@@ -548,7 +548,6 @@ return {
           },
         },
       },
-      -- pyright = {},
       -- rust_analyzer = {},
       -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
       --
@@ -604,19 +603,20 @@ return {
           on_dir(root)
         end,
       },
-      ruff = {},
-      pylsp = {
+      basedpyright = {
         settings = {
-          pylsp = {
-            plugins = {
-              pyflakes = { enabled = false },
-              pycodestyle = { enabled = false },
-              autopep8 = { enabled = false },
-              yapf = { enabled = false },
-              mccabe = { enabled = false },
-              pylsp_mypy = { enabled = false },
-              pylsp_black = { enabled = false },
-              pylsp_isort = { enabled = false },
+          basedpyright = {
+            analysis = {
+              typeCheckingMode = 'basic',
+            },
+          },
+        },
+      },
+      ruff = {
+        init_options = {
+          settings = {
+            lint = {
+              extendSelect = { 'E101' },
             },
           },
         },
