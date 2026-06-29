@@ -20,7 +20,7 @@ end
 
 return {
   'folke/flash.nvim',
-  event = 'VeryLazy',
+  lazy = false,
   config = function(_, opts)
     require('flash').setup(opts)
     set_flash_highlights()
@@ -33,6 +33,11 @@ return {
   opts = {
     search = {
       multi_window = false,
+    },
+    jump = {
+      history = true,
+      nohlsearch = true,
+      register = true,
     },
     label = {
       after = false,

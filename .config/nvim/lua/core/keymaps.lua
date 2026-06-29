@@ -28,9 +28,14 @@ vim.keymap.set('n', '∆', ':m .+1<CR>==', { silent = true }) -- macOS Option+J
 local function open_line_with_same_indent(direction)
   local line_number = vim.api.nvim_win_get_cursor(0)[1]
   local source_line_number = line_number
+  local insert_after_line_number = line_number
 
   if direction == 'above' and line_number > 1 then
     source_line_number = line_number - 1
+  end
+
+  if direction == 'below' and vim.fn.foldclosed(line_number) == line_number then
+    insert_after_line_number = vim.fn.foldclosedend(line_number)
   end
 
   local line = vim.api.nvim_buf_get_lines(0, source_line_number - 1, source_line_number, false)[1] or ''
@@ -42,7 +47,7 @@ local function open_line_with_same_indent(direction)
     table.insert(lines, indent)
   end
 
-  local insert_at = direction == 'below' and line_number or line_number - 1
+  local insert_at = direction == 'below' and insert_after_line_number or line_number - 1
   vim.api.nvim_buf_set_lines(0, insert_at, insert_at, true, lines)
   vim.api.nvim_win_set_cursor(0, { insert_at + 1, #indent })
   vim.cmd 'startinsert!'

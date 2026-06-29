@@ -176,7 +176,7 @@ local function collect_semantic_fold_ranges(node, ranges, seen, line_count, line
     local key = start_line .. ':' .. end_line
     if not seen[key] then
       seen[key] = true
-      table.insert(ranges, { start_line = start_line, end_line = end_line })
+      table.insert(ranges, { start_line = start_line, end_line = end_line, source = 'semantic' })
     end
   end
 
@@ -205,18 +205,26 @@ local function line_for_offset(line_starts, offset)
   return #line_starts
 end
 
-local function add_fold_range(ranges, seen, start_line, end_line)
+local function add_fold_range(ranges, seen, start_line, end_line, source)
   if end_line <= start_line then
     return
   end
 
   local key = start_line .. ':' .. end_line
   if seen[key] then
+    if source then
+      for _, range in ipairs(ranges) do
+        if range.start_line == start_line and range.end_line == end_line then
+          range.source = source == 'markup' and 'markup' or range.source or source
+          break
+        end
+      end
+    end
     return
   end
 
   seen[key] = true
-  table.insert(ranges, { start_line = start_line, end_line = end_line })
+  table.insert(ranges, { start_line = start_line, end_line = end_line, source = source })
 end
 
 local function collect_markup_tag_fold_ranges(bufnr, ranges, seen, line_count)
@@ -261,12 +269,12 @@ local function collect_markup_tag_fold_ranges(bufnr, ranges, seen, line_count)
         for i = #stack, 1, -1 do
           if stack[i].name == name and (prefix:match('^%s*$') or stack[i].line == start_line) then
             local open = table.remove(stack, i)
-            add_fold_range(ranges, seen, open.line, end_line)
+            add_fold_range(ranges, seen, open.line, end_line, 'markup')
             break
           end
         end
       elseif is_self_closing and prefix:match('^%s*$') then
-        add_fold_range(ranges, seen, start_line, end_line)
+        add_fold_range(ranges, seen, start_line, end_line, 'markup')
       elseif prefix:match('^%s*$') then
         table.insert(stack, { name = name, line = start_line })
       end
@@ -287,7 +295,7 @@ local function build_fold_data(line_count, ranges)
     local end_line = math.max(start_line, math.min(range.end_line, line_count))
 
     if end_line > start_line then
-      table.insert(normalized_ranges, { start_line = start_line, end_line = end_line })
+      table.insert(normalized_ranges, { start_line = start_line, end_line = end_line, source = range.source })
       starts[start_line] = true
       ends[end_line] = true
       deltas[start_line] = (deltas[start_line] or 0) + 1
@@ -426,11 +434,11 @@ function _G.SmartTreesitterFoldexpr(lnum)
   return data.exprs[lnum] or 0
 end
 
-local function shortest_range_starting_at(data, lnum)
+local function shortest_range_starting_at(data, lnum, source)
   local best = nil
 
   for _, range in ipairs(data.ranges) do
-    if range.start_line == lnum and (not best or range.end_line < best.end_line) then
+    if range.start_line == lnum and (not source or range.source == source) and (not best or range.end_line < best.end_line) then
       best = range
     end
   end
@@ -556,7 +564,12 @@ end
 
 function _G.SmartFoldRangeAtStart(lnum)
   local bufnr = vim.api.nvim_get_current_buf()
-  local best = shortest_range_starting_at(get_smart_fold_data(bufnr), lnum)
+  local smart_data = get_smart_fold_data(bufnr)
+  local best = shortest_range_starting_at(smart_data, lnum)
+
+  if markup_fold_filetypes[vim.bo[bufnr].filetype] then
+    best = shortest_range_starting_at(smart_data, lnum, 'markup') or best
+  end
 
   if vim.bo[bufnr].filetype == 'javascriptreact' or vim.bo[bufnr].filetype == 'typescriptreact' then
     local jsx_range = shortest_range_starting_at(parse_jsx_folds(bufnr).data, lnum)

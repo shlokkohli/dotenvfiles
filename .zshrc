@@ -38,6 +38,7 @@ export PATH="/Library/PostgreSQL/17/bin:$PATH"
 alias c="clear"
 alias v="nvim"
 alias lg="lazygit"
+alias python="python3"
 
 # zoxide (smart cd)
 eval "$(zoxide init zsh)"
