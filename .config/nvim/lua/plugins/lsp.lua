@@ -156,6 +156,27 @@ return {
           vim.fn.settagstack(vim.fn.win_getid(), { items = items }, 't')
         end
 
+        local function show_locations_in_telescope(items, title)
+          -- Telescope's quickfix picker gives these location-shaped items a
+          -- searchable list and a full file preview without opening a split.
+          vim.fn.setqflist({}, ' ', {
+            title = title,
+            items = items,
+          })
+          require('telescope.builtin').quickfix {
+            prompt_title = title,
+            -- Definition previews should look like normal source buffers even
+            -- though Treesitter is disabled for other Telescope previews.
+            -- TypeScript's lib.dom.d.ts is larger than Telescope's default
+            -- 1 MB highlight limit, so allow highlighting larger declaration
+            -- files here without changing every Telescope picker.
+            preview = {
+              treesitter = true,
+              highlight_limit = 10,
+            },
+          }
+        end
+
         local function grep_definition_fallback(symbol, root)
           local current_file = vim.api.nvim_buf_get_name(0)
           local current_line = vim.api.nvim_win_get_cursor(0)[1]
@@ -205,11 +226,7 @@ return {
             return
           end
 
-          vim.fn.setqflist({}, ' ', {
-            title = 'Definition search: ' .. symbol,
-            items = items,
-          })
-          vim.cmd 'copen'
+          show_locations_in_telescope(items, 'Definition search: ' .. symbol)
         end
 
         local function jump_to_location(loc, offset_encoding)
@@ -300,11 +317,7 @@ return {
             return jump_to_location(declarations[1], offset_encoding)
           end
 
-          vim.fn.setqflist({}, ' ', {
-            title = title,
-            items = vim.lsp.util.locations_to_items(unique, offset_encoding),
-          })
-          vim.cmd 'copen'
+          show_locations_in_telescope(vim.lsp.util.locations_to_items(unique, offset_encoding), title)
           return true
         end
 
@@ -352,19 +365,9 @@ return {
           local win = vim.api.nvim_get_current_win()
           local params = vim.lsp.util.make_position_params(win, ts.offset_encoding)
           local root = ts.config.root_dir or vim.fn.getcwd()
-          local line = vim.api.nvim_get_current_line()
-          local is_member_access = line:find('.' .. symbol, 1, true) ~= nil
 
           local function fallback_to_search()
             grep_definition_fallback(symbol, root)
-          end
-
-          -- Imported instance methods and `this.method()` calls are the cases
-          -- where ts_ls is currently returning `any` after initialization.
-          -- For those, search the package root directly.
-          if is_member_access then
-            fallback_to_search()
-            return
           end
 
           local function try_source_definition()

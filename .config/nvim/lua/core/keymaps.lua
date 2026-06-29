@@ -211,10 +211,6 @@ local function flash_copied_filename()
     pcall(vim.api.nvim_set_hl, 0, group, { link = 'IncSearch' })
   end
 
-  vim.g.copied_filename_flash = true
-  pcall(function()
-    require('lualine').refresh()
-  end)
   vim.cmd.redrawtabline()
 
   vim.defer_fn(function()
@@ -222,11 +218,21 @@ local function flash_copied_filename()
       pcall(vim.api.nvim_set_hl, 0, group, original_highlights[group] or {})
     end
 
-    vim.g.copied_filename_flash = false
+    vim.cmd.redrawtabline()
+  end, 180)
+end
+
+local function flash_copied_filepath()
+  vim.g.copied_filepath_flash = true
+  pcall(function()
+    require('lualine').refresh()
+  end)
+
+  vim.defer_fn(function()
+    vim.g.copied_filepath_flash = false
     pcall(function()
       require('lualine').refresh()
     end)
-    vim.cmd.redrawtabline()
   end, 180)
 end
 
@@ -236,6 +242,23 @@ vim.keymap.set('n', '<leader>yf', function()
   flash_copied_filename()
   vim.notify('Copied file name: ' .. filename)
 end, { desc = 'Copy current file name' })
+
+vim.keymap.set('n', '<leader>yp', function()
+  local path = vim.fn.expand '%:p'
+  if path == '' then
+    vim.notify('Current buffer has no file path', vim.log.levels.WARN)
+    return
+  end
+
+  local home = vim.fn.expand '~'
+  if path:sub(1, #home + 1) == home .. '/' then
+    path = path:sub(#home + 2)
+  end
+
+  vim.fn.setreg('+', path)
+  flash_copied_filepath()
+  vim.notify('Copied file path: ' .. path)
+end, { desc = 'Copy current file path' })
 
 -- save file
 
@@ -336,8 +359,8 @@ local function is_fold_start(line)
   return vim.fn.foldlevel(line) > vim.fn.foldlevel(line - 1)
 end
 
-local function fold_range(command, range)
-  vim.cmd(('%d,%d%s'):format(range.start_line, range.end_line, command))
+local function fold_at_start(command, range)
+  vim.cmd(('%d%s'):format(range.start_line, command))
 end
 
 local function is_smart_fold_buffer()
@@ -373,14 +396,14 @@ vim.keymap.set('n', 'za', function()
 
   if closed_start == line then
     if smart_range then
-      fold_range('foldopen', smart_range)
+      fold_at_start('foldopen', smart_range)
     elseif use_smart_fold then
       return
     else
       pcall(vim.cmd, 'normal! za')
     end
   elseif smart_range then
-    fold_range('foldclose', smart_range)
+    fold_at_start('foldclose', smart_range)
   elseif use_smart_fold then
     return
   elseif is_fold_start(line) then

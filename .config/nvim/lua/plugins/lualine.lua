@@ -17,7 +17,7 @@ return {
       file_status = true, -- displays file status (readonly status, modified status)
       path = 1, -- show path relative to the current working directory
       color = function()
-        if vim.g.copied_filename_flash then
+        if vim.g.copied_filepath_flash then
           return { fg = colors.base, bg = colors.yellow, gui = 'bold' }
         end
       end,
