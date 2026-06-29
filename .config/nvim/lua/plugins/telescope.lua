@@ -918,9 +918,9 @@ return {
     vim.keymap.set({ 'n', 'x' }, '<leader>sg', toggle_telescope('<leader>sg', live_grep_smart), { desc = '[S]earch by [G]rep' })
     vim.keymap.set({ 'n', 'x' }, '<leader>sG', toggle_telescope('<leader>sG', search_by_literal_grep), { desc = '[S]earch by literal [G]rep' })
     vim.keymap.set(telescope_modes, '<leader>sd', toggle_telescope('<leader>sd', current_buffer_diagnostics), { desc = '[S]earch [D]iagnostics' })
-    vim.keymap.set(telescope_modes, '<leader>sr', toggle_telescope('<leader>sr', builtin.resume), { desc = '[S]earch [R]esume' })
+    vim.keymap.set(telescope_modes, '<leader>sb', toggle_telescope('<leader>sb', builtin.resume), { desc = '[S]earch Resume' })
     vim.keymap.set(telescope_modes, '<leader>s.', toggle_telescope('<leader>s.', builtin.oldfiles), { desc = '[S]earch Recent Files' })
-    vim.keymap.set(telescope_modes, '<leader>sb', toggle_telescope('<leader>sb', builtin.buffers), { desc = '[S]earch [B]uffers' })
+    vim.keymap.set(telescope_modes, '<leader>sr', toggle_telescope('<leader>sr', builtin.buffers), { desc = '[S]earch Buffe[R]s' })
     vim.keymap.set(telescope_modes, '<leader><leader>', toggle_telescope('<leader><leader>', search_current_word_in_buffer), { desc = 'Search current word in buffer' })
 
     -- Slightly advanced example of overriding default behavior and theme
