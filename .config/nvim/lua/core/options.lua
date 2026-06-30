@@ -168,9 +168,12 @@ end
 local function collect_semantic_fold_ranges(node, ranges, seen, line_count, line_offset)
   line_offset = line_offset or 0
   local node_type = node:type()
-  local start_row, _, end_row = node:range()
+  local start_row, _, end_row, end_col = node:range()
   local start_line = start_row + line_offset + 1
-  local end_line = math.min(end_row + line_offset + 1, line_count)
+  -- Tree-sitter ranges are end-exclusive. An end at column 0 belongs to the
+  -- previous line, otherwise folding also consumes the following sibling.
+  local end_line = end_row + line_offset + (end_col == 0 and 0 or 1)
+  end_line = math.min(end_line, line_count)
 
   if end_line > start_line and is_semantic_fold_node(node_type) then
     local key = start_line .. ':' .. end_line
@@ -639,7 +642,11 @@ end, { bang = true, desc = 'Quit all with friendly messages' })
 
 -- Redirect :q and :qa to the friendly versions
 vim.api.nvim_create_user_command('W', function(opts)
-  vim.cmd('write' .. (opts.bang and '!' or ''))
+  if vim.bo.filetype == 'spectre_panel' then
+    require('spectre.actions').run_replace()
+  else
+    vim.cmd('write' .. (opts.bang and '!' or ''))
+  end
 end, { bang = true, desc = 'Save file' })
 vim.cmd [[cabbrev q Q]]
 vim.cmd [[cabbrev qa Qa]]

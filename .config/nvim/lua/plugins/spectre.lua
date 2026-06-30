@@ -25,5 +25,17 @@ return {
       desc = 'Search and replace selection in project',
     },
   },
-  opts = {},
+  config = function()
+    require('spectre').setup {}
+
+    -- The Spectre panel is a preview, not a writable file. In that panel only,
+    -- make :w apply all enabled replacements instead of trying to write it.
+    vim.api.nvim_create_autocmd('FileType', {
+      pattern = 'spectre_panel',
+      callback = function()
+        vim.cmd [[cnoreabbrev <buffer> <expr> w getcmdtype() ==# ':' && getcmdline() ==# 'w' ? "lua require('spectre.actions').run_replace()" : 'w']]
+      end,
+      desc = 'Use :w to apply all Spectre replacements',
+    })
+  end,
 }
