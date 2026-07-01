@@ -204,6 +204,7 @@ function M.lsp_servers()
         on_dir(root)
       end,
     },
+    bashls = {},
     basedpyright = {
       settings = {
         basedpyright = {
