@@ -4,14 +4,7 @@ return { -- Highlight, edit, and navigate code
   -- Parsers are installed via :TSInstall. The build function below installs
   -- all required parsers when the plugin is first installed or rebuilt.
   build = function()
-    require('nvim-treesitter.install').install {
-      'lua', 'python', 'javascript', 'jsx', 'typescript', 'tsx',
-      'vimdoc', 'vim', 'regex', 'terraform', 'sql', 'dockerfile',
-      'toml', 'json', 'java', 'groovy', 'go', 'gomod', 'gosum',
-      'gitignore', 'graphql', 'yaml', 'make', 'cmake',
-      'markdown', 'markdown_inline', 'bash', 'rust',
-      'vue', 'css', 'scss', 'html', 'prisma',
-    }
+    require('nvim-treesitter.install').install(require('config.languages').treesitter_parsers)
   end,
   main = 'nvim-treesitter.config',
   opts = {

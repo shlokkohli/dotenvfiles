@@ -694,18 +694,7 @@ vim.api.nvim_create_autocmd({ 'TextChanged', 'TextChangedI' }, {
 })
 
 -- Filetype overrides for project-specific files.
-vim.filetype.add {
-  extension = {
-    prisma = 'prisma',
-  },
-  filename = {
-    ['.env'] = 'sh',
-    ['yarn.lock'] = 'yarnlock',
-  },
-  pattern = {
-    ['.*%.env%..*'] = 'sh', -- .env.local, .env.staging, etc.
-  },
-}
+vim.filetype.add(require('config.languages').filetype_detection)
 
 local function setup_yarn_lock_buffer(bufnr)
   if not vim.api.nvim_buf_is_loaded(bufnr) then

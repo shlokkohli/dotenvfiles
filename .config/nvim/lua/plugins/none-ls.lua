@@ -5,6 +5,8 @@ return {
     'jayp0521/mason-null-ls.nvim',
   },
   config = function()
+    local language_config = require 'config.languages'
+    local tooling = language_config.none_ls
     local null_ls = require 'null-ls'
     local formatting = null_ls.builtins.formatting
     local diagnostics = null_ls.builtins.diagnostics
@@ -132,17 +134,6 @@ return {
       end)
     end
 
-    local biome_filetypes = {
-      'javascript',
-      'typescript',
-      'javascriptreact',
-      'typescriptreact',
-      'json',
-      'jsonc',
-      'css',
-      'graphql',
-    }
-
     local eslint_root = util.root_pattern('.eslintrc.js', '.eslintrc.cjs', '.eslintrc.json', '.eslintrc')
 
     local eslint_d = require('none-ls.diagnostics.eslint_d').with {
@@ -156,17 +147,7 @@ return {
     }
 
     require('mason-null-ls').setup {
-      ensure_installed = {
-        'biome',
-        'prettier',
-        'stylua',
-        'eslint_d',
-        'shfmt',
-        'checkmake',
-        'ruff',
-        'clang_format',
-        'goimports',
-      },
+      ensure_installed = tooling.ensure_installed,
       automatic_installation = true,
     }
 
@@ -174,7 +155,7 @@ return {
       diagnostics.checkmake,
       eslint_d,
       formatting.biome.with {
-        filetypes = biome_filetypes,
+        filetypes = tooling.biome_filetypes,
         condition = function(utils)
           return has_biome(utils.bufname)
         end,
@@ -182,18 +163,9 @@ return {
           return biome_root(params.bufname)
         end,
       },
-      formatting.clang_format.with { filetypes = { 'c', 'cpp' } },
+      formatting.clang_format.with { filetypes = tooling.clang_filetypes },
       formatting.prettier.with {
-        filetypes = {
-          'javascript',
-          'javascriptreact',
-          'typescript',
-          'typescriptreact',
-          'json',
-          'jsonc',
-          'css',
-          'graphql',
-        },
+        filetypes = tooling.prettier_code_filetypes,
         condition = function(utils)
           return has_prettier(utils.bufname) and not has_biome(utils.bufname)
         end,
@@ -202,15 +174,7 @@ return {
         end,
       },
       formatting.prettier.with {
-        filetypes = {
-          'yaml',
-          'markdown',
-          'html',
-          'htmldjango',
-          'vue',
-          'scss',
-          'less',
-        },
+        filetypes = tooling.prettier_markup_filetypes,
         condition = function(utils)
           return has_prettier(utils.bufname)
         end,

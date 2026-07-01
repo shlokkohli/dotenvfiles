@@ -10,12 +10,7 @@ return {
   {
     "NvChad/nvim-colorizer.lua",
     opts = {
-      filetypes = {
-        "css",
-        "scss",
-        "sass",
-        "less",
-      },
+      filetypes = require('config.languages').tailwind_colorizer_filetypes,
       options = {
         parsers = {
           css = true,

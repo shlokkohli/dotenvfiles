@@ -27,6 +27,7 @@ return {
     local previewer_utils = require 'telescope.previewers.utils'
     local sorters = require 'telescope.sorters'
     local utils = require 'telescope.utils'
+    local search_config = require 'config.search'
 
     local image_extensions = {
       png = true,
@@ -454,6 +455,18 @@ return {
         :find()
     end
 
+    local vimgrep_arguments = {
+      'rg',
+      '--color=never',
+      '--no-heading',
+      '--with-filename',
+      '--line-number',
+      '--column',
+      '--ignore-case',
+      '--fixed-strings',
+    }
+    vim.list_extend(vimgrep_arguments, search_config.default_vimgrep_globs())
+
     require('telescope').setup {
       defaults = {
         grep_previewer = literal_grep_previewer,
@@ -466,22 +479,7 @@ return {
         buffer_previewer_maker = image_buffer_previewer_maker,
         -- VS Code-style literal search: override rg defaults to include --fixed-strings
         -- so dots, brackets, etc. are matched literally and trailing spaces matter.
-        vimgrep_arguments = {
-          'rg',
-          '--color=never',
-          '--no-heading',
-          '--with-filename',
-          '--line-number',
-          '--column',
-          '--ignore-case',
-          '--fixed-strings',
-          '--glob',
-          '!**/.next/**',
-          '--glob',
-          '!**/.cache/**',
-          '--glob',
-          '!**/.nitro/**',
-        },
+        vimgrep_arguments = vimgrep_arguments,
         preview = {
           treesitter = false,
           wrap = true,  -- wrap long lines so matches at end of line are visible
@@ -558,28 +556,10 @@ return {
       },
       pickers = {
         find_files = {
-          find_command = {
-            'fd', '--type', 'f', '--hidden', '--no-ignore',
-            '--exclude', 'node_modules',
-            '--exclude', 'generated',
-            '--exclude', '.git',
-            '--exclude', '.next',
-            '--exclude', '.cache',
-            '--exclude', '.nitro',
-            '--exclude', '.venv',
-            '--exclude', '.turbo',
-            '--exclude', '.husky',
-            '--exclude', '__pycache__',
-            '--exclude', '_pycache',
-            '--exclude', 'package-lock.json',
-            '--exclude', '.DS_Store',
-            '--exclude', 'Thumbs.db',
-            '--exclude', '.Spotlight-V100',
-            '--exclude', '.Trashes',
-          },
+          find_command = search_config.find_command(),
         },
         live_grep = {
-          file_ignore_patterns = { 'node_modules', 'generated', '%.git', '%.next', '%.cache', '%.nitro', '%.venv', '%.turbo', '%.husky', '__pycache__', '_pycache', 'package%-lock%.json$' },
+          file_ignore_patterns = search_config.picker_ignore_patterns(),
           additional_args = function(_)
             return { '--hidden' }
           end,
@@ -622,18 +602,8 @@ return {
         return
       end
 
-      local additional_args = {
-        '--hidden',
-        '--glob', '!**/node_modules/**',
-        '--glob', '!**/generated/**',
-        '--glob', '!.git/**',
-        '--glob', '!**/.next/**',
-        '--glob', '!**/.cache/**',
-        '--glob', '!**/.nitro/**',
-        '--glob', '!.venv/**',
-        '--glob', '!**/__pycache__/**',
-        '--glob', '!**/_pycache/**',
-      }
+      local additional_args = { '--hidden' }
+      vim.list_extend(additional_args, search_config.literal_grep_globs())
 
       if opts and opts.multiline then
         table.insert(additional_args, 2, '--multiline')
@@ -776,17 +746,8 @@ return {
 
       local vimgrep_arguments = opts.vimgrep_arguments or conf.vimgrep_arguments
       local base_args = vim.deepcopy(vimgrep_arguments)
-      vim.list_extend(base_args, {
-        '--hidden',
-        '--glob', '!**/node_modules/**',
-        '--glob', '!**/generated/**',
-        '--glob', '!.git/**',
-        '--glob', '!**/.next/**',
-        '--glob', '!**/.cache/**',
-        '--glob', '!.venv/**',
-        '--glob', '!**/__pycache__/**',
-        '--glob', '!**/_pycache/**',
-      })
+      table.insert(base_args, '--hidden')
+      vim.list_extend(base_args, search_config.multiline_grep_globs())
 
       opts.__inverted = false
       opts.__matches = false
