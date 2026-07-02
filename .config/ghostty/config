@@ -1,7 +1,7 @@
-notkeybind = ctrl+tab=text:\x1b[27;5;9~
+keybind = ctrl+tab=text:\x1b[27;5;9~
 keybind = ctrl+shift+tab=text:\x1b[27;6;9~
 keybind = ctrl+i=text:\x1b[Z
-font-size = 13
+font-size = 14
 font-thicken = true
 keybind = ctrl+j=unbind
 keybind = cmd+enter=ignore

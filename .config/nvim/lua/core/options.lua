@@ -640,6 +640,10 @@ vim.api.nvim_create_user_command('Qa', function(opts)
   end
 end, { bang = true, desc = 'Quit all with friendly messages' })
 
+vim.api.nvim_create_user_command('Wqa', function(opts)
+  vim.cmd('wqa' .. (opts.bang and '!' or ''))
+end, { bang = true, desc = 'Save all files and quit' })
+
 -- Redirect :q and :qa to the friendly versions
 vim.api.nvim_create_user_command('W', function(opts)
   if vim.bo.filetype == 'spectre_panel' then

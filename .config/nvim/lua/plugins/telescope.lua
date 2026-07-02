@@ -749,33 +749,61 @@ return {
       table.insert(base_args, '--hidden')
       vim.list_extend(base_args, search_config.multiline_grep_globs())
 
+      local case_sensitive = false
+
+      local function case_mode_title()
+        return case_sensitive and 'Live Grep [Case Sensitive]' or 'Live Grep [Case Insensitive]'
+      end
+
       opts.__inverted = false
       opts.__matches = false
 
-      local live_grepper = finders.new_job(function(prompt)
-        local search = search_text_from_prompt(prompt)
-        if not search then
-          return nil
-        end
+      local function make_live_grepper()
+        return finders.new_job(function(prompt)
+          local search = search_text_from_prompt(prompt)
+          if not search then
+            return nil
+          end
 
-        local args = vim.deepcopy(base_args)
-        if search:find('\n', 1, true) then
-          table.insert(args, 2, '--multiline')
-        end
-        table.insert(args, 2, '--json')
+          local args = vim.deepcopy(base_args)
+          -- Put the selected case flag after the defaults so it overrides the
+          -- global --ignore-case setting when case-sensitive mode is enabled.
+          table.insert(args, case_sensitive and '--case-sensitive' or '--ignore-case')
+          if search:find('\n', 1, true) then
+            table.insert(args, 2, '--multiline')
+          end
+          table.insert(args, 2, '--json')
 
-        vim.list_extend(args, { '--', search })
-        return args
-      end, opts.entry_maker or make_json_grep_entry, opts.max_results, opts.cwd)
+          vim.list_extend(args, { '--', search })
+          return args
+        end, opts.entry_maker or make_json_grep_entry, opts.max_results, opts.cwd)
+      end
+
+      local live_grepper = make_live_grepper()
 
       pickers
         .new(opts, {
-          prompt_title = 'Live Grep',
+          prompt_title = case_mode_title(),
           finder = live_grepper,
           previewer = conf.grep_previewer(opts),
           sorter = sorters.highlighter_only(opts),
           attach_mappings = function(prompt_bufnr, map)
             install_multiline_paste_handler(prompt_bufnr)
+
+            local function toggle_case_sensitivity()
+              case_sensitive = not case_sensitive
+              local picker = action_state.get_current_picker(prompt_bufnr)
+              picker.prompt_border:change_title(case_mode_title())
+              live_grepper = make_live_grepper()
+              picker:refresh(live_grepper, { reset_prompt = false })
+            end
+
+            map('i', '<M-c>', toggle_case_sensitivity)
+            map('n', '<M-c>', toggle_case_sensitivity)
+            -- macOS terminals may send the literal character ç for Option+C
+            -- instead of an Alt/Meta key sequence.
+            map('i', 'ç', toggle_case_sensitivity)
+            map('n', 'ç', toggle_case_sensitivity)
             map('i', '<C-space>', actions.to_fuzzy_refine)
             map('i', '<C-v>', paste_multiline_search)
             map('i', '<D-v>', paste_multiline_search)

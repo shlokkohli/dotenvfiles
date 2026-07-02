@@ -328,6 +328,39 @@ return {
           return char:match '[%w_$]' ~= nil
         end
 
+        local html_tags = vim.iter({
+          'a', 'abbr', 'address', 'area', 'article', 'aside', 'audio', 'b', 'base', 'bdi', 'bdo',
+          'blockquote', 'body', 'br', 'button', 'canvas', 'caption', 'cite', 'code', 'col',
+          'colgroup', 'data', 'datalist', 'dd', 'del', 'details', 'dfn', 'dialog', 'div', 'dl',
+          'dt', 'em', 'embed', 'fieldset', 'figcaption', 'figure', 'footer', 'form', 'h1', 'h2',
+          'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hgroup', 'hr', 'html', 'i', 'iframe',
+          'img', 'input', 'ins', 'kbd', 'label', 'legend', 'li', 'link', 'main', 'map', 'mark',
+          'menu', 'meta', 'meter', 'nav', 'noscript', 'object', 'ol', 'optgroup', 'option',
+          'output', 'p', 'picture', 'pre', 'progress', 'q', 'rp', 'rt', 'ruby', 's', 'samp',
+          'script', 'search', 'section', 'select', 'slot', 'small', 'source', 'span', 'strong',
+          'style', 'sub', 'summary', 'sup', 'table', 'tbody', 'td', 'template', 'textarea',
+          'tfoot', 'th', 'thead', 'time', 'title', 'tr', 'track', 'u', 'ul', 'var', 'video',
+          'wbr',
+        }):fold({}, function(tags, tag)
+          tags[tag] = true
+          return tags
+        end)
+
+        local function cursor_is_on_native_html_tag(symbol)
+          if not html_tags[symbol:lower()] then
+            return false
+          end
+
+          local cursor_col = vim.api.nvim_win_get_cursor(0)[2] + 1
+          local line = vim.api.nvim_get_current_line()
+          local word_start = cursor_col
+          while word_start > 1 and line:sub(word_start - 1, word_start - 1):match '[%w:_-]' do
+            word_start = word_start - 1
+          end
+
+          return line:sub(1, word_start - 1):match '<%/?%s*$' ~= nil
+        end
+
         map('gd', function()
           if not cursor_is_on_identifier() then
             return
@@ -335,6 +368,12 @@ return {
 
           local ts = get_ts_client(event.buf)
           local symbol = vim.fn.expand '<cword>'
+          -- Native HTML elements have no source definition. In particular, do
+          -- not send them through the text-search fallback when the LSP returns
+          -- nothing; this matches VS Code's Command-click behaviour.
+          if cursor_is_on_native_html_tag(symbol) then
+            return
+          end
           if not ts then
             if has_definition_client(event.buf) then
               -- Request definitions manually so we can deduplicate and jump
@@ -629,7 +668,8 @@ return {
     -- Fade unused variables/functions like VS Code does
     vim.api.nvim_set_hl(0, 'DiagnosticUnnecessary', { fg = '#6b7280', italic = true })
     vim.api.nvim_set_hl(0, 'DiagnosticUnderlineError', { undercurl = true, sp = '#e06c75' })
-    vim.api.nvim_set_hl(0, 'DiagnosticUnderlineWarn', { undercurl = true, sp = '#e5c07b' })
+    -- VS Code Dark+ diagnostic warning squiggle.
+    vim.api.nvim_set_hl(0, 'DiagnosticUnderlineWarn', { undercurl = true, sp = '#cca700' })
     vim.api.nvim_set_hl(0, 'DiagnosticUnderlineInfo', { undercurl = true, sp = '#61afef' })
     vim.api.nvim_set_hl(0, 'DiagnosticUnderlineHint', { undercurl = true, sp = '#56b6c2' })
 

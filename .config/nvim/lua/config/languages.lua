@@ -210,6 +210,10 @@ function M.lsp_servers()
         basedpyright = {
           analysis = {
             typeCheckingMode = 'basic',
+            diagnosticSeverityOverrides = {
+              -- Match VS Code/Pylance: unresolved imports are warnings, not errors.
+              reportMissingImports = 'warning',
+            },
           },
         },
       },
