@@ -89,6 +89,9 @@ local ignored_fold_node_types = {
   program = true,
   source_file = true,
   translation_unit = true,
+  -- Its body starts on the same line. Keeping both ranges makes `za` select
+  -- the wider try/catch fold instead of only the body under `try {`.
+  try_statement = true,
 }
 
 local semantic_fold_node_types = {
@@ -130,6 +133,8 @@ local semantic_fold_node_types = {
   method_declaration = true,
   method_definition = true,
   object = true,
+  object_type = true,
+  parenthesized_expression = true,
   repeat_statement = true,
   set = true,
   script_element = true,
@@ -140,7 +145,6 @@ local semantic_fold_node_types = {
   table_constructor = true,
   template_element = true,
   trait_item = true,
-  try_statement = true,
   tuple = true,
   while_statement = true,
   jsx_element = true,
@@ -165,7 +169,7 @@ local function is_semantic_fold_node(node_type)
     or node_type:match('interface') ~= nil
 end
 
-local function collect_semantic_fold_ranges(node, ranges, seen, line_count, line_offset)
+local function collect_semantic_fold_ranges(node, ranges, seen, line_count, line_offset, source)
   line_offset = line_offset or 0
   local node_type = node:type()
   local start_row, _, end_row, end_col = node:range()
@@ -173,6 +177,18 @@ local function collect_semantic_fold_ranges(node, ranges, seen, line_count, line
   -- Tree-sitter ranges are end-exclusive. An end at column 0 belongs to the
   -- previous line, otherwise folding also consumes the following sibling.
   local end_line = end_row + line_offset + (end_col == 0 and 0 or 1)
+
+  -- Keep a standalone closing-delimiter line visible below the folded text.
+  -- Besides being easier to scan, this prevents boundaries such as
+  -- `} catch (...) {` from merging two adjacent folds.
+  if source and end_col > 0 then
+    local node_text = vim.treesitter.get_node_text(node, source)
+    local final_node_line = node_text and node_text:match('[^\n]*$') or ''
+    if final_node_line:match('^%s*[%]%)%}>;,]+%s*$') then
+      end_line = end_line - 1
+    end
+  end
+
   end_line = math.min(end_line, line_count)
 
   if end_line > start_line and is_semantic_fold_node(node_type) then
@@ -184,7 +200,7 @@ local function collect_semantic_fold_ranges(node, ranges, seen, line_count, line
   end
 
   for child in node:iter_children() do
-    collect_semantic_fold_ranges(child, ranges, seen, line_count, line_offset)
+    collect_semantic_fold_ranges(child, ranges, seen, line_count, line_offset, source)
   end
 end
 
@@ -371,7 +387,7 @@ local function collect_vue_embedded_script_fold_ranges(node, bufnr, ranges, seen
         local parse_ok, trees = pcall(parser.parse, parser)
         if parse_ok and trees and trees[1] then
           local raw_start_row = raw_text_node:range()
-          collect_semantic_fold_ranges(trees[1]:root(), ranges, seen, line_count, raw_start_row)
+          collect_semantic_fold_ranges(trees[1]:root(), ranges, seen, line_count, raw_start_row, raw_text)
         end
       end
     end
@@ -411,7 +427,7 @@ local function get_smart_fold_data(bufnr)
   local ranges = {}
   local seen = {}
   local root = trees[1]:root()
-  collect_semantic_fold_ranges(root, ranges, seen, line_count)
+  collect_semantic_fold_ranges(root, ranges, seen, line_count, nil, bufnr)
 
   if vim.bo[bufnr].filetype == 'vue' then
     collect_vue_embedded_script_fold_ranges(root, bufnr, ranges, seen, line_count)

@@ -675,8 +675,15 @@ vim.keymap.set('n', '<leader>d', vim.diagnostic.open_float, { desc = 'Open float
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostics list' })
 
 -- Select inner line (excluding indentation)
-vim.keymap.set('x', 'il', ':<C-u>normal! ^vg_<CR>', { desc = 'Select inner line' })
-vim.keymap.set('o', 'il', ':normal! ^vg_<CR>', { desc = 'Select inner line' })
+local function select_inner_physical_line()
+  local folds_were_enabled = vim.wo.foldenable
+  vim.wo.foldenable = false
+  vim.cmd 'normal! ^vg_'
+  vim.wo.foldenable = folds_were_enabled
+end
+
+vim.keymap.set('x', 'il', select_inner_physical_line, { desc = 'Select inner physical line' })
+vim.keymap.set('o', 'il', select_inner_physical_line, { desc = 'Select inner physical line' })
 
 vim.keymap.set('n', '<A-l>', '5zl', { silent = true })
 vim.keymap.set('n', '<A-h>', '5zh', { silent = true })
