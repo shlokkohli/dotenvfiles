@@ -1,6 +1,21 @@
 return {
   'nvim-telescope/telescope.nvim',
-  event = 'VimEnter',
+  cmd = 'Telescope',
+  keys = {
+    { '<leader>sk', mode = { 'n', 'x' } },
+    { '<leader>sf', mode = { 'n', 'x' } },
+    { '<leader>ss', mode = { 'n', 'x' } },
+    { '<leader>sc', mode = { 'n', 'x' } },
+    { '<leader>sg', mode = { 'n', 'x' } },
+    { '<leader>sG', mode = { 'n', 'x' } },
+    { '<leader>sd', mode = { 'n', 'x' } },
+    { '<leader>sb', mode = { 'n', 'x' } },
+    { '<leader>s.', mode = { 'n', 'x' } },
+    { '<leader>sr', mode = { 'n', 'x' } },
+    { '<leader><leader>', mode = { 'n', 'x' } },
+    { '<leader>/', mode = { 'n', 'x' } },
+    { '<leader>s/', mode = { 'n', 'x' } },
+  },
   -- We removed the '0.1.x' branch to ensure you get the latest fixes for Neovim 0.10+
   dependencies = {
     'nvim-lua/plenary.nvim',

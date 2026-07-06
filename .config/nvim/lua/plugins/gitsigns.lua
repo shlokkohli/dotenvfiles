@@ -108,6 +108,19 @@ return {
   {
     'akinsho/git-conflict.nvim',
     version = '*',
+    event = { 'BufReadPost', 'BufNewFile' },
+    cmd = {
+      'GitConflictChooseOurs',
+      'GitConflictChooseTheirs',
+      'GitConflictChooseBoth',
+      'GitConflictChooseNone',
+    },
+    keys = {
+      { '<leader>go', '<cmd>GitConflictChooseOurs<cr>', desc = 'Choose ours' },
+      { '<leader>gt', '<cmd>GitConflictChooseTheirs<cr>', desc = 'Choose theirs' },
+      { '<leader>gb', '<cmd>GitConflictChooseBoth<cr>', desc = 'Choose both' },
+      { '<leader>gn', '<cmd>GitConflictChooseNone<cr>', desc = 'Choose none' },
+    },
     config = function()
       local ok, git_conflict = pcall(require, 'git-conflict')
       if not ok then
@@ -131,6 +144,18 @@ return {
   -- Main Git interface
   {
     'NeogitOrg/neogit',
+    cmd = 'Neogit',
+    keys = {
+      {
+        '<leader>gs',
+        function()
+          require('neogit').open { kind = 'tab' }
+        end,
+        desc = 'Open Neogit (tab)',
+      },
+      { '<leader>gd', desc = 'Toggle Diffview' },
+      { '<leader>gD', desc = 'Toggle Diffview' },
+    },
     dependencies = {
       'nvim-lua/plenary.nvim',
       'sindrets/diffview.nvim',
@@ -176,6 +201,13 @@ return {
   -- Better diff viewing
   {
     'sindrets/diffview.nvim',
+    cmd = {
+      'DiffviewOpen',
+      'DiffviewClose',
+      'DiffviewToggleFiles',
+      'DiffviewFocusFiles',
+      'DiffviewFileHistory',
+    },
     dependencies = 'nvim-lua/plenary.nvim',
     config = function()
       local actions = require 'diffview.actions'

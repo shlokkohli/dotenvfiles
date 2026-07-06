@@ -9,6 +9,7 @@ return {
   },
   {
     "NvChad/nvim-colorizer.lua",
+    ft = require('config.languages').tailwind_colorizer_filetypes,
     opts = {
       filetypes = require('config.languages').tailwind_colorizer_filetypes,
       options = {

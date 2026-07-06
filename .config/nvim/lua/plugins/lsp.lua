@@ -236,10 +236,25 @@ return {
             return false
           end
           push_tagstack(vim.fn.expand '<cword>')
-          vim.lsp.util.show_document({
+          local ok = pcall(vim.lsp.util.show_document, {
             uri = uri,
             range = range,
           }, offset_encoding, { focus = true })
+          if ok then
+            return true
+          end
+
+          if not vim.startswith(uri, 'file://') then
+            return false
+          end
+
+          vim.cmd('edit ' .. vim.fn.fnameescape(vim.uri_to_fname(uri)))
+          local line_count = math.max(vim.api.nvim_buf_line_count(0), 1)
+          local line = math.min((range.start and range.start.line or 0) + 1, line_count)
+          local line_text = vim.api.nvim_buf_get_lines(0, line - 1, line, false)[1] or ''
+          local col = math.min(range.start and range.start.character or 0, #line_text)
+          vim.api.nvim_win_set_cursor(0, { line, col })
+          vim.cmd 'normal! zz'
           return true
         end
 
@@ -347,7 +362,9 @@ return {
         end)
 
         local function cursor_is_on_native_html_tag(symbol)
-          if not html_tags[symbol:lower()] then
+          -- Vue components can be PascalCase versions of native tag names, like
+          -- <Section>. Only lowercase template tags should be treated as native.
+          if symbol ~= symbol:lower() or not html_tags[symbol] then
             return false
           end
 

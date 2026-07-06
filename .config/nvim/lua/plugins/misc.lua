@@ -19,10 +19,12 @@ return {
   {
     -- Powerful Git integration for Vim
     'tpope/vim-fugitive',
+    cmd = { 'Git', 'G', 'Gdiffsplit', 'Gvdiffsplit', 'Gread', 'Gwrite', 'Ggrep' },
   },
   {
     -- GitHub integration for vim-fugitive
     'tpope/vim-rhubarb',
+    cmd = 'GBrowse',
   },
   {
     -- Hints keybinds
@@ -39,6 +41,17 @@ return {
   {
     -- Smooth scrolling for window movement commands (Ctrl-D, Ctrl-U, etc.)
     'karb94/neoscroll.nvim',
+    keys = {
+      { '<C-b>', mode = { 'n', 'v', 'x' } },
+      { '<C-f>', mode = { 'n', 'v', 'x' } },
+      { '<C-y>', mode = { 'n', 'v', 'x' } },
+      { '<C-e>', mode = { 'n', 'v', 'x' } },
+      { '<C-u>', mode = { 'n', 'v', 'x' } },
+      { '<C-d>', mode = { 'n', 'v', 'x' } },
+      { 'zt', mode = { 'n', 'v', 'x' } },
+      { 'zz', mode = { 'n', 'v', 'x' } },
+      { 'zb', mode = { 'n', 'v', 'x' } },
+    },
     config = function()
       require('neoscroll').setup {
         -- Exclude C-u and C-d from default setup so we can override their speed

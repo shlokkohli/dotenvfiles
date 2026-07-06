@@ -1,6 +1,12 @@
 return {
   'nvim-neo-tree/neo-tree.nvim',
   branch = 'v3.x',
+  cmd = 'Neotree',
+  keys = {
+    { '\\', '<cmd>Neotree reveal<cr>', desc = 'Reveal current file in Neo-tree' },
+    { '<leader>e', '<cmd>Neotree toggle position=left<cr>', desc = 'Toggle Neo-tree' },
+    { '<leader>ngs', '<cmd>Neotree float git_status<cr>', desc = 'Neo-tree git status' },
+  },
   dependencies = {
     'nvim-lua/plenary.nvim',
     'nvim-tree/nvim-web-devicons',
@@ -432,9 +438,9 @@ return {
       },
     }
 
-    vim.cmd [[nnoremap \ :Neotree reveal<cr>]]
-    vim.keymap.set('n', '<leader>e', ':Neotree toggle position=left<CR>', { noremap = true, silent = true }) -- focus file explorer
-    vim.keymap.set('n', '<leader>ngs', ':Neotree float git_status<CR>', { noremap = true, silent = true }) -- open git status window
+    vim.keymap.set('n', '\\', ':Neotree reveal<CR>', { noremap = true, silent = true, desc = 'Reveal current file in Neo-tree' })
+    vim.keymap.set('n', '<leader>e', ':Neotree toggle position=left<CR>', { noremap = true, silent = true, desc = 'Toggle Neo-tree' }) -- focus file explorer
+    vim.keymap.set('n', '<leader>ngs', ':Neotree float git_status<CR>', { noremap = true, silent = true, desc = 'Neo-tree git status' }) -- open git status window
 
     -- Refresh neo-tree git status on user interaction (not continuous watching)
     local function refresh_neotree_git()

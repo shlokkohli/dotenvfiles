@@ -1,6 +1,7 @@
 return {
   '3rd/image.nvim',
-  lazy = false,
+  lazy = true,
+  ft = { 'markdown', 'vimwiki', 'asciidoc', 'typst', 'neorg' },
   config = function()
     require('image').setup {
       backend = 'kitty',
