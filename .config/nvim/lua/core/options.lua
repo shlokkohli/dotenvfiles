@@ -184,7 +184,11 @@ local function collect_semantic_fold_ranges(node, ranges, seen, line_count, line
   if source and end_col > 0 then
     local node_text = vim.treesitter.get_node_text(node, source)
     local final_node_line = node_text and node_text:match('[^\n]*$') or ''
-    if final_node_line:match('^%s*[%]%)%}>;,]+%s*$') then
+    local standalone_delimiter = final_node_line:match('^%s*[%]%)%}>;,]+%s*$')
+      or final_node_line:match('^%s*</[%w_.:-]+>%s*$')
+      or final_node_line:match('^%s*</>%s*$')
+
+    if standalone_delimiter then
       end_line = end_line - 1
     end
   end
@@ -316,7 +320,7 @@ local function build_fold_data(line_count, ranges)
     if end_line > start_line then
       table.insert(normalized_ranges, { start_line = start_line, end_line = end_line, source = range.source })
       starts[start_line] = true
-      ends[end_line] = true
+      ends[end_line] = (ends[end_line] or 0) + 1
       deltas[start_line] = (deltas[start_line] or 0) + 1
       deltas[end_line + 1] = (deltas[end_line + 1] or 0) - 1
     end
@@ -333,7 +337,9 @@ local function build_fold_data(line_count, ranges)
     if starts[line] then
       exprs[line] = '>' .. active_level
     elseif ends[line] then
-      exprs[line] = '<' .. active_level
+      -- Multiple nested ranges can end together, such as a JSX element and
+      -- its parenthesized expression. Close from the outermost ending level.
+      exprs[line] = '<' .. (active_level - ends[line] + 1)
     else
       exprs[line] = active_level
     end
@@ -515,8 +521,15 @@ local function parse_jsx_folds(bufnr)
         for i = #stack, 1, -1 do
           if stack[i].name == name then
             local open = table.remove(stack, i)
-            if open.line < end_line then
-              table.insert(ranges, { start_line = open.line, end_line = end_line })
+            local fold_end_line = end_line
+            local closing_line = lines[end_line] or ''
+
+            if closing_line:match('^%s*</[%w_.:-]+>%s*$') or closing_line:match('^%s*</>%s*$') then
+              fold_end_line = fold_end_line - 1
+            end
+
+            if open.line < fold_end_line then
+              table.insert(ranges, { start_line = open.line, end_line = fold_end_line })
             end
             break
           end
@@ -560,7 +573,17 @@ function _G.ReactJsxFoldexpr(lnum)
   local smart_ends = type(smart_expr) == 'string' and smart_expr:sub(1, 1) == '<'
 
   if jsx_ends or smart_ends then
-    return '<' .. math.max(jsx_level, smart_level)
+    local combined_level = math.max(jsx_level, smart_level)
+    local ending_count = 0
+
+    if jsx_ends then
+      ending_count = math.max(ending_count, jsx_level - tonumber(jsx_expr:sub(2)) + 1)
+    end
+    if smart_ends then
+      ending_count = math.max(ending_count, smart_level - tonumber(smart_expr:sub(2)) + 1)
+    end
+
+    return '<' .. (combined_level - ending_count + 1)
   end
 
   return math.max(jsx_level, smart_level)

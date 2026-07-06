@@ -674,16 +674,23 @@ vim.keymap.set('n', ']d', vim.diagnostic.goto_next, { desc = 'Go to next diagnos
 vim.keymap.set('n', '<leader>d', vim.diagnostic.open_float, { desc = 'Open floating diagnostic message' })
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostics list' })
 
--- Select inner line (excluding indentation)
-local function select_inner_physical_line()
+-- Select inner line (excluding indentation and trailing whitespace).
+local function with_folds_temporarily_disabled(command)
   local folds_were_enabled = vim.wo.foldenable
   vim.wo.foldenable = false
-  vim.cmd 'normal! ^vg_'
+  vim.cmd(command)
   vim.wo.foldenable = folds_were_enabled
 end
 
-vim.keymap.set('x', 'il', select_inner_physical_line, { desc = 'Select inner physical line' })
-vim.keymap.set('o', 'il', select_inner_physical_line, { desc = 'Select inner physical line' })
+vim.keymap.set('x', 'il', function()
+  -- `v` is already active here. Move one end to the first non-blank
+  -- character, swap ends with `o`, then move the other to the last one.
+  with_folds_temporarily_disabled 'normal! ^og_'
+end, { desc = 'Select inner physical line' })
+
+vim.keymap.set('o', 'il', function()
+  with_folds_temporarily_disabled 'normal! ^vg_'
+end, { desc = 'Inside physical line' })
 
 vim.keymap.set('n', '<A-l>', '5zl', { silent = true })
 vim.keymap.set('n', '<A-h>', '5zh', { silent = true })
