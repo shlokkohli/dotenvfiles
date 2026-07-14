@@ -63,7 +63,7 @@ return {
         topdelete = { text = '‾' },
         changedelete = { text = '~' },
       },
-      current_line_blame = true,
+      current_line_blame = false, -- toggle with <leader>tb (perf: avoid git blame on every cursor move)
       on_attach = function(bufnr)
         local gs = package.loaded.gitsigns
         local map = function(mode, l, r, opts)
@@ -74,10 +74,11 @@ return {
 
         map('n', ']c', gs.next_hunk, { desc = 'Next Git Hunk' })
         map('n', '[c', gs.prev_hunk, { desc = 'Prev Git Hunk' })
-        
+
         -- VS Code style: peek at the original code before it was changed
         map('n', '<leader>hp', gs.preview_hunk, { desc = 'Preview git hunk (like VS Code)' })
         map('n', '<leader>hr', gs.reset_hunk, { desc = 'Revert (reset) this git change' })
+        map('n', '<leader>tb', gs.toggle_current_line_blame, { desc = '[T]oggle git [B]lame' })
       end,
     },
     config = function(_, opts)
@@ -187,7 +188,7 @@ return {
             restore_pre_diffview_buffers()
             diffview_buffers.active = false
             diffview_buffers.pre_existing = {}
-            error(err)
+            vim.notify('Not in a git repository', vim.log.levels.WARN)
           end
         end
       end

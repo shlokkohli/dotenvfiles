@@ -1,5 +1,6 @@
 return {
   'romgrk/barbar.nvim',
+  event = 'BufAdd',
   dependencies = {
     'lewis6991/gitsigns.nvim', -- optional
     'nvim-tree/nvim-web-devicons', -- optional

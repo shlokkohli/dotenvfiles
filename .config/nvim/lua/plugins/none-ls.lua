@@ -1,5 +1,6 @@
 return {
   'nvimtools/none-ls.nvim',
+  event = 'BufReadPost',
   dependencies = {
     'nvimtools/none-ls-extras.nvim',
     'jayp0521/mason-null-ls.nvim',

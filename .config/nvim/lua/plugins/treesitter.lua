@@ -16,11 +16,5 @@ return { -- Highlight, edit, and navigate code
   },
   config = function(_, opts)
     require('nvim-treesitter.config').setup(opts)
-    vim.api.nvim_create_autocmd('FileType', {
-      pattern = '*',
-      callback = function()
-        pcall(vim.treesitter.start)
-      end,
-    })
   end,
 }

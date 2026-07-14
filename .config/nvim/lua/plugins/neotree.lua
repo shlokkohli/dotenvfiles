@@ -11,7 +11,7 @@ return {
     'nvim-lua/plenary.nvim',
     'nvim-tree/nvim-web-devicons',
     'MunifTanjim/nui.nvim',
-    '3rd/image.nvim', -- Optional image support in preview window: See `# Preview Mode` for more information
+
     {
       's1n7ax/nvim-window-picker',
       version = '2.*',
@@ -358,8 +358,7 @@ return {
         -- "open_current",  -- netrw disabled, opening a directory opens within the
         -- window like netrw would, regardless of window.position
         -- "disabled",    -- netrw left alone, neo-tree does not handle opening dirs
-        use_libuv_file_watcher = true, -- Auto-refresh tree when files change on disk
-        -- instead of relying on nvim autocmd events.
+        use_libuv_file_watcher = false, -- disabled: FocusGained autocmd handles refresh instead
         window = {
           mappings = {
             ['<bs>'] = 'navigate_up',
