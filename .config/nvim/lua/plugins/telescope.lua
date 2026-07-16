@@ -85,13 +85,19 @@ return {
     end
 
     local function set_preview_message(bufnr, winid, message)
+      if vim.api.nvim_buf_is_valid(bufnr) then
+        vim.bo[bufnr].modifiable = true
+      end
+
       if winid and vim.api.nvim_win_is_valid(winid) then
         previewer_utils.set_preview_message(bufnr, winid, message, '╱')
+        if vim.api.nvim_buf_is_valid(bufnr) then
+          vim.bo[bufnr].modifiable = false
+        end
         return
       end
 
       if vim.api.nvim_buf_is_valid(bufnr) then
-        vim.bo[bufnr].modifiable = true
         vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { message })
         vim.bo[bufnr].modifiable = false
       end

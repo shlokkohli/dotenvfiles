@@ -1036,34 +1036,49 @@ local self_closing_tag_node_types = {
   self_closing_tag = true,
 }
 
+local function range_contains_position(start_row, start_col, end_row, end_col, row, col)
+  if row < start_row or row > end_row then
+    return false
+  end
+
+  if row == start_row and col < start_col then
+    return false
+  end
+
+  -- Tree-sitter ranges end immediately after the final character.
+  return row ~= end_row or col < end_col
+end
+
+local function smallest_tag_element_at(node, row, col)
+  local start_row, start_col, end_row, end_col = node:range()
+  if not range_contains_position(start_row, start_col, end_row, end_col, row, col) then
+    return nil
+  end
+
+  for child in node:iter_children() do
+    local match = smallest_tag_element_at(child, row, col)
+    if match then
+      return match
+    end
+  end
+
+  return element_node_types[node:type()] and node or nil
+end
+
 local function get_tag_element_node()
-  local ok, node = pcall(vim.treesitter.get_node)
-  if not ok then
-    node = nil
+  local parser_ok, parser = pcall(vim.treesitter.get_parser, 0)
+  if not parser_ok or not parser then
+    return nil
   end
 
-  if not node then
-    local parser_ok, parser = pcall(vim.treesitter.get_parser, 0)
-    if not parser_ok or not parser then
-      return nil
-    end
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  local row = cursor[1] - 1
+  local col = cursor[2]
+  local tree = parser:parse()[1]
 
-    local cursor = vim.api.nvim_win_get_cursor(0)
-    local row = cursor[1] - 1
-    local col = cursor[2]
-    local tree = parser:parse()[1]
-    node = tree and tree:root():named_descendant_for_range(row, col, row, col)
-  end
-
-  while node do
-    if element_node_types[node:type()] then
-      return node
-    end
-
-    node = node:parent()
-  end
-
-  return nil
+  -- In Vue directives get_node() can return an injected JavaScript node, whose
+  -- parents do not include the surrounding template element.
+  return tree and smallest_tag_element_at(tree:root(), row, col) or nil
 end
 
 local function find_direct_child_by_type(node, types)
