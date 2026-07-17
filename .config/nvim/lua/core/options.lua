@@ -182,7 +182,8 @@ local function collect_semantic_fold_ranges(node, ranges, seen, line_count, line
   -- Besides being easier to scan, this prevents boundaries such as
   -- `} catch (...) {` from merging two adjacent folds.
   if source and end_col > 0 then
-    local node_text = vim.treesitter.get_node_text(node, source)
+    local ok, node_text = pcall(vim.treesitter.get_node_text, node, source)
+    if not ok then node_text = nil end
     local final_node_line = node_text and node_text:match('[^\n]*$') or ''
     local standalone_delimiter = final_node_line:match('^%s*[%]%)%}>;,]+%s*$')
       or final_node_line:match('^%s*</[%w_.:-]+>%s*$')
