@@ -74,7 +74,7 @@ return {
       inactive_sections = {
         lualine_a = {},
         lualine_b = {},
-        lualine_c = { { 'filename', path = 1 } },
+        lualine_c = { { 'filename', path = 1, shorting_target = 0 } },
         lualine_x = { { 'location', padding = 0 } },
         lualine_y = {},
         lualine_z = {},

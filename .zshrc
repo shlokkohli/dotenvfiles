@@ -33,6 +33,14 @@ export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 export PATH="/Library/PostgreSQL/17/bin:$PATH"
 
+# Keys & Credentials
+if [ -f "$HOME/.keys" ]; then
+  source "$HOME/.keys"
+elif [ -f "$HOME/.keys.zsh" ]; then
+  source "$HOME/.keys.zsh"
+elif [ -f "$HOME/dotfiles/keys.zsh" ]; then
+  source "$HOME/dotfiles/keys.zsh"
+fi
 
 # Aliases
 alias c="clear"
@@ -58,3 +66,6 @@ _accept_or_complete() {
 zle -N _accept_or_complete
 bindkey '\t' _accept_or_complete
 
+
+# opencode
+export PATH=/Users/shlok/.opencode/bin:$PATH

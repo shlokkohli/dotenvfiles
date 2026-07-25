@@ -78,6 +78,7 @@ local smart_fold_cache = {}
 local markup_fold_filetypes = {
   astro = true,
   html = true,
+  markdown = true,
   svelte = true,
   vue = true,
 }
@@ -181,11 +182,14 @@ local function collect_semantic_fold_ranges(node, ranges, seen, line_count, line
   -- Keep a standalone closing-delimiter line visible below the folded text.
   -- Besides being easier to scan, this prevents boundaries such as
   -- `} catch (...) {` from merging two adjacent folds.
-  if source and end_col > 0 then
-    local ok, node_text = pcall(vim.treesitter.get_node_text, node, source)
-    if not ok then node_text = nil end
-    local final_node_line = node_text and node_text:match('[^\n]*$') or ''
-    local standalone_delimiter = final_node_line:match('^%s*[%]%)%}>;,]+%s*$')
+  if end_col > 0 and end_line > start_line then
+    -- Read only the final line of the node from the buffer — cheap O(1) slice
+    -- instead of allocating the full node text via get_node_text.
+    local last_line_idx = end_row  -- 0-indexed, inclusive
+    local bufnr_for_line = type(source) == 'number' and source or 0
+    local ok_line, last_lines = pcall(vim.api.nvim_buf_get_lines, bufnr_for_line, last_line_idx, last_line_idx + 1, false)
+    local final_node_line = (ok_line and last_lines and last_lines[1]) or ''
+    local standalone_delimiter = final_node_line:match('^%s*[%]%)%}>;<,]+%s*$')
       or final_node_line:match('^%s*</[%w_.:-]+>%s*$')
       or final_node_line:match('^%s*</>%s*$')
 
@@ -405,6 +409,43 @@ local function collect_vue_embedded_script_fold_ranges(node, bufnr, ranges, seen
   end
 end
 
+local pending_fold_recompute = {}
+
+local function recompute_smart_fold_data(bufnr)
+  local changedtick = vim.b[bufnr].changedtick
+  local filetype = vim.bo[bufnr].filetype
+  local line_count = vim.api.nvim_buf_line_count(bufnr)
+  local empty_data = build_fold_data(line_count, {})
+
+  local ok, parser = pcall(vim.treesitter.get_parser, bufnr)
+  if not ok or not parser then
+    smart_fold_cache[bufnr] = { changedtick = changedtick, filetype = filetype, data = empty_data }
+    return
+  end
+
+  local parse_ok, trees = pcall(parser.parse, parser)
+  if not parse_ok or not trees or not trees[1] then
+    smart_fold_cache[bufnr] = { changedtick = changedtick, filetype = filetype, data = empty_data }
+    return
+  end
+
+  local ranges = {}
+  local seen = {}
+  local root = trees[1]:root()
+  collect_semantic_fold_ranges(root, ranges, seen, line_count, nil, bufnr)
+
+  if filetype == 'vue' then
+    collect_vue_embedded_script_fold_ranges(root, bufnr, ranges, seen, line_count)
+  end
+
+  if markup_fold_filetypes[filetype] then
+    collect_markup_tag_fold_ranges(bufnr, ranges, seen, line_count)
+  end
+
+  local data = build_fold_data(line_count, ranges)
+  smart_fold_cache[bufnr] = { changedtick = changedtick, filetype = filetype, data = data }
+end
+
 local function get_smart_fold_data(bufnr)
   local changedtick = vim.b[bufnr].changedtick
   local cached = smart_fold_cache[bufnr]
@@ -413,46 +454,31 @@ local function get_smart_fold_data(bufnr)
     return cached.data
   end
 
+  -- Serve stale cache instantly so foldexpr never blocks the UI.
+  -- Schedule a real recompute to run after the current operation finishes.
+  if not pending_fold_recompute[bufnr] then
+    pending_fold_recompute[bufnr] = true
+    vim.schedule(function()
+      pending_fold_recompute[bufnr] = nil
+      if vim.api.nvim_buf_is_loaded(bufnr) then
+        recompute_smart_fold_data(bufnr)
+        -- Ask Neovim to redraw folds now that the cache is fresh.
+        vim.api.nvim_buf_call(bufnr, function()
+          if vim.wo.foldmethod == 'expr' then
+            vim.cmd 'silent! normal! zx'
+          end
+        end)
+      end
+    end)
+  end
+
+  -- Return stale data (or empty) — never block here.
+  if cached then
+    return cached.data
+  end
+
   local line_count = vim.api.nvim_buf_line_count(bufnr)
-  local empty_data = build_fold_data(line_count, {})
-
-  local ok, parser = pcall(vim.treesitter.get_parser, bufnr)
-  if not ok or not parser then
-    smart_fold_cache[bufnr] = {
-      changedtick = changedtick,
-      filetype = vim.bo[bufnr].filetype,
-      data = empty_data,
-    }
-    return empty_data
-  end
-
-  local parse_ok, trees = pcall(parser.parse, parser)
-  if not parse_ok or not trees or not trees[1] then
-    return empty_data
-  end
-
-  local ranges = {}
-  local seen = {}
-  local root = trees[1]:root()
-  collect_semantic_fold_ranges(root, ranges, seen, line_count, nil, bufnr)
-
-  if vim.bo[bufnr].filetype == 'vue' then
-    collect_vue_embedded_script_fold_ranges(root, bufnr, ranges, seen, line_count)
-  end
-
-  if markup_fold_filetypes[vim.bo[bufnr].filetype] then
-    collect_markup_tag_fold_ranges(bufnr, ranges, seen, line_count)
-  end
-
-  local data = build_fold_data(line_count, ranges)
-
-  smart_fold_cache[bufnr] = {
-    changedtick = changedtick,
-    filetype = vim.bo[bufnr].filetype,
-    data = data,
-  }
-
-  return data
+  return build_fold_data(line_count, {})
 end
 
 function _G.SmartTreesitterFoldexpr(lnum)
