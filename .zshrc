@@ -47,6 +47,7 @@ alias c="clear"
 alias v="nvim"
 alias lg="lazygit"
 alias python="python3"
+alias oc="opencode"
 
 # zoxide (smart cd)
 eval "$(zoxide init zsh)"

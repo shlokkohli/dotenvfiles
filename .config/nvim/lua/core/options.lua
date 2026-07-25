@@ -47,6 +47,7 @@ vim.opt.runtimepath:remove '/usr/share/vim/vimfiles' -- Separate Vim plugins fro
 vim.o.foldlevel = 99
 vim.o.foldlevelstart = 99
 vim.o.foldenable = true
+vim.o.foldopen = 'block,hor,jump,mark,percent,quickfix,search,tag,undo'
 vim.opt.fillchars:append { fold = ' ' }
 
 local function get_fold_summary_text(fold_start, fold_end)
