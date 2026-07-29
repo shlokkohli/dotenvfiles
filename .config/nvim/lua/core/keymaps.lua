@@ -411,6 +411,19 @@ vim.keymap.set('n', 'za', function()
   end
 end, { desc = 'Toggle fold from its first line', silent = true })
 
+vim.keymap.set('n', 'w', function()
+  local count = vim.v.count1
+  local line = vim.api.nvim_win_get_cursor(0)[1]
+
+  -- `w` normally skips a fold when the cursor is already on its first line.
+  -- Reveal that fold first, then keep the standard word-motion behavior.
+  if vim.fn.foldclosed(line) ~= -1 then
+    vim.cmd 'normal! zv'
+  end
+
+  vim.cmd(('normal! %dw'):format(count))
+end, { desc = 'Move to next word, opening the current fold', silent = true })
+
 local function go_to_line_percent(percent)
   local first_code_column = math.max(1, vim.fn.indent('.') + 1)
   local line_width = math.max(first_code_column, vim.fn.virtcol('$') - 1)
