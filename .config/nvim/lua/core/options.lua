@@ -410,8 +410,6 @@ local function collect_vue_embedded_script_fold_ranges(node, bufnr, ranges, seen
   end
 end
 
-local pending_fold_recompute = {}
-
 local function recompute_smart_fold_data(bufnr)
   local changedtick = vim.b[bufnr].changedtick
   local filetype = vim.bo[bufnr].filetype
@@ -455,31 +453,10 @@ local function get_smart_fold_data(bufnr)
     return cached.data
   end
 
-  -- Serve stale cache instantly so foldexpr never blocks the UI.
-  -- Schedule a real recompute to run after the current operation finishes.
-  if not pending_fold_recompute[bufnr] then
-    pending_fold_recompute[bufnr] = true
-    vim.schedule(function()
-      pending_fold_recompute[bufnr] = nil
-      if vim.api.nvim_buf_is_loaded(bufnr) then
-        recompute_smart_fold_data(bufnr)
-        -- Ask Neovim to redraw folds now that the cache is fresh.
-        vim.api.nvim_buf_call(bufnr, function()
-          if vim.wo.foldmethod == 'expr' then
-            vim.cmd 'silent! normal! zx'
-          end
-        end)
-      end
-    end)
-  end
-
-  -- Return stale data (or empty) — never block here.
-  if cached then
-    return cached.data
-  end
-
-  local line_count = vim.api.nvim_buf_line_count(bufnr)
-  return build_fold_data(line_count, {})
+  -- Rebuild once for this buffer change.  Calling `zx` here would refresh the
+  -- folds too, but it also discards the folds the user manually closed.
+  recompute_smart_fold_data(bufnr)
+  return smart_fold_cache[bufnr].data
 end
 
 function _G.SmartTreesitterFoldexpr(lnum)
