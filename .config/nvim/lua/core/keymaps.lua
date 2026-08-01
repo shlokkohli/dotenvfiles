@@ -3,6 +3,10 @@ local opts = { noremap = true, silent = true }
 vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
 
+-- Keep word-under-cursor searches exact even though normal `/` searches are smart case.
+vim.keymap.set('n', '*', [[/\C\<<C-r><C-w>\><CR>]], opts)
+vim.keymap.set('n', '#', [[?\C\<<C-r><C-w>\><CR>]], opts)
+
 -- Insert mode: Option+B = move back 1 word, Option+W = move forward 1 word
 vim.keymap.set('i', '<M-b>', '<C-o>b', opts)
 vim.keymap.set('i', '<M-w>', '<C-o>w', opts)

@@ -171,6 +171,18 @@ local function is_semantic_fold_node(node_type)
     or node_type:match('interface') ~= nil
 end
 
+local function fold_has_nonblank_content(bufnr, start_line, end_line)
+  -- The start line is the fold heading. Check only the lines it would hide.
+  local lines = vim.api.nvim_buf_get_lines(bufnr, start_line, end_line, false)
+  for _, line in ipairs(lines) do
+    if line:match('%S') then
+      return true
+    end
+  end
+
+  return false
+end
+
 local function collect_semantic_fold_ranges(node, ranges, seen, line_count, line_offset, source)
   line_offset = line_offset or 0
   local node_type = node:type()
@@ -202,10 +214,13 @@ local function collect_semantic_fold_ranges(node, ranges, seen, line_count, line
   end_line = math.min(end_line, line_count)
 
   if end_line > start_line and is_semantic_fold_node(node_type) then
-    local key = start_line .. ':' .. end_line
-    if not seen[key] then
-      seen[key] = true
-      table.insert(ranges, { start_line = start_line, end_line = end_line, source = 'semantic' })
+    local bufnr_for_content = type(source) == 'number' and source or 0
+    if fold_has_nonblank_content(bufnr_for_content, start_line, end_line) then
+      local key = start_line .. ':' .. end_line
+      if not seen[key] then
+        seen[key] = true
+        table.insert(ranges, { start_line = start_line, end_line = end_line, source = 'semantic' })
+      end
     end
   end
 
