@@ -108,6 +108,30 @@ return {
       }
     end
 
+    -- When you <C-w>w into the hover float, pressing <C-w>w again closes it
+    -- and returns focus to the exact code window you came from.
+    vim.api.nvim_create_autocmd('WinEnter', {
+      group = vim.api.nvim_create_augroup('lsp-hover-float-nav', { clear = true }),
+      callback = function()
+        local winid = vim.api.nvim_get_current_win()
+        local cfg = vim.api.nvim_win_get_config(winid)
+        if cfg.relative ~= '' then
+          -- Capture the window we came from *right now*, before we settle into the float.
+          -- winnr('#') is Vim's "previous window" number at the moment WinEnter fires.
+          local prev_win = vim.fn.win_getid(vim.fn.winnr '#')
+          local function close_and_return()
+            vim.api.nvim_win_close(winid, true)
+            info_winid = nil
+            -- Explicitly jump back instead of letting Neovim cycle to the next window.
+            if prev_win and prev_win ~= 0 and vim.api.nvim_win_is_valid(prev_win) then
+              vim.api.nvim_set_current_win(prev_win)
+            end
+          end
+          vim.keymap.set('n', '<Esc>', close_and_return, { buffer = true, desc = 'Close hover float and return to code' })
+        end
+      end,
+    })
+
     --  This function gets run when an LSP attaches to a particular buffer.
     --    That is to say, every time a new file is opened that is associated with
     --    an lsp (for example, opening `main.rs` is associated with `rust_analyzer`) this

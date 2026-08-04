@@ -96,12 +96,87 @@ return {
       require('neo-tree.sources.manager').refresh(state.name)
     end
 
+    -- Neo-tree runs file actions from its own window. Deleting a file that is
+    -- displayed in another window would otherwise close that window, leaving
+    -- Neo-tree as the only one and triggering the last-window fallback below.
+    -- Keep a small MRU list so the editor can show the next recent file instead.
+    local recent_file_buffers = {}
+
+    local function is_file_buffer(bufnr, excluded)
+      if excluded[bufnr] or not vim.api.nvim_buf_is_valid(bufnr) then
+        return false
+      end
+
+      if not vim.bo[bufnr].buflisted or vim.bo[bufnr].buftype ~= '' then
+        return false
+      end
+
+      local path = vim.api.nvim_buf_get_name(bufnr)
+      local stat = path ~= '' and (vim.uv or vim.loop).fs_stat(path)
+      return stat and stat.type == 'file'
+    end
+
+    vim.api.nvim_create_autocmd('BufEnter', {
+      group = vim.api.nvim_create_augroup('neo-tree-recent-file-buffers', { clear = true }),
+      callback = function(args)
+        local bufnr = args.buf
+        if vim.bo[bufnr].buftype ~= '' or vim.api.nvim_buf_get_name(bufnr) == '' then
+          return
+        end
+
+        for index = #recent_file_buffers, 1, -1 do
+          if recent_file_buffers[index] == bufnr then
+            table.remove(recent_file_buffers, index)
+          end
+        end
+        table.insert(recent_file_buffers, bufnr)
+      end,
+    })
+
+    local function replacement_buffer(excluded)
+      for index = #recent_file_buffers, 1, -1 do
+        local bufnr = recent_file_buffers[index]
+        if is_file_buffer(bufnr, excluded) then
+          return bufnr
+        end
+        table.remove(recent_file_buffers, index)
+      end
+
+      for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
+        if is_file_buffer(bufnr, excluded) then
+          return bufnr
+        end
+      end
+    end
+
     local function close_trashed_buffers(paths)
+      local trashed_buffers = {}
       for _, path in ipairs(paths) do
         local bufnr = vim.fn.bufnr(path)
         if bufnr ~= -1 then
-          vim.api.nvim_buf_delete(bufnr, { force = true })
+          trashed_buffers[bufnr] = true
         end
+      end
+
+      if next(trashed_buffers) == nil then
+        return
+      end
+
+      local replacement = replacement_buffer(trashed_buffers)
+      for _, winid in ipairs(vim.api.nvim_list_wins()) do
+        if trashed_buffers[vim.api.nvim_win_get_buf(winid)] then
+          if replacement then
+            vim.api.nvim_win_set_buf(winid, replacement)
+          else
+            vim.api.nvim_win_call(winid, function()
+              vim.cmd 'enew'
+            end)
+          end
+        end
+      end
+
+      for bufnr in pairs(trashed_buffers) do
+        vim.api.nvim_buf_delete(bufnr, { force = true })
       end
     end
 
