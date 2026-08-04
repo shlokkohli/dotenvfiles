@@ -49,6 +49,7 @@ M.treesitter_parsers = {
   'scss',
   'html',
   'prisma',
+  'xml',
 }
 
 M.conform_formatters = {
@@ -63,6 +64,7 @@ M.conform_formatters = {
   html = { 'prettier' },
   markdown = { 'prettier' },
   yaml = { 'prettier' },
+  toml = { 'taplo' },
 }
 
 M.none_ls = {
@@ -231,6 +233,9 @@ function M.lsp_servers()
     marksman = {},
     vimls = {},
     autotools_ls = {},
+    lemminx = {},
+    taplo = {},
+    groovyls = {},
     neocmake = {},
     html = {
       filetypes = { 'html', 'twig', 'hbs', 'htmldjango' },
