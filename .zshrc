@@ -8,6 +8,9 @@ source $ZSH/oh-my-zsh.sh
 # PATH & env
 export PATH=$PATH:/Users/shlok/mongodb-macos-aarch64-7.0.8/bin
 
+# Rust / Cargo
+source "$HOME/.cargo/env"
+
 export ANDROID_HOME=$HOME/Library/Android/sdk
 export PATH=$PATH:$ANDROID_HOME/emulator
 export PATH=$PATH:$ANDROID_HOME/platform-tools
