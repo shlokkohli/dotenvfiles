@@ -715,12 +715,36 @@ vim.cmd [[cabbrev q Q]]
 vim.cmd [[cabbrev qa Qa]]
 
 -- Refresh buffers when files change outside Neovim (for example in VS Code)
-vim.api.nvim_create_autocmd({ 'FocusGained', 'BufEnter', 'CursorHold', 'CursorHoldI', 'TermClose', 'TermLeave' }, {
+-- FocusGained: fire immediately (user switches back to terminal, correct to check right away)
+-- BufEnter/CursorHold: debounced — avoids a synchronous disk stat on every tab switch
+local checktime_timer = nil
+vim.api.nvim_create_autocmd('FocusGained', {
   group = vim.api.nvim_create_augroup('auto-reload-on-focus', { clear = true }),
   callback = function()
     if vim.fn.mode() ~= 'c' then
       vim.cmd 'checktime'
     end
+  end,
+})
+vim.api.nvim_create_autocmd({ 'BufEnter', 'CursorHold', 'CursorHoldI', 'TermClose', 'TermLeave' }, {
+  group = vim.api.nvim_create_augroup('auto-reload-debounced', { clear = true }),
+  callback = function()
+    if vim.fn.mode() == 'c' then
+      return
+    end
+    if checktime_timer then
+      checktime_timer:stop()
+      checktime_timer:close()
+      checktime_timer = nil
+    end
+    checktime_timer = vim.uv.new_timer()
+    checktime_timer:start(50, 0, vim.schedule_wrap(function()
+      if checktime_timer then
+        checktime_timer:close()
+        checktime_timer = nil
+      end
+      pcall(vim.cmd, 'checktime')
+    end))
   end,
 })
 
@@ -733,6 +757,11 @@ vim.api.nvim_create_autocmd({ 'TextChanged', 'TextChangedI' }, {
     -- Only check named files that are marked as modified
     local filename = vim.api.nvim_buf_get_name(buf)
     if filename == '' or not vim.bo[buf].modified then
+      return
+    end
+    -- Skip large files to avoid blocking I/O on every keypress
+    local stat = vim.uv.fs_stat(filename)
+    if not stat or stat.size > 500 * 1024 then
       return
     end
     -- Read the file from disk and compare with buffer content
