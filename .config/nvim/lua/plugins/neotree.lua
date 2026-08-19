@@ -404,7 +404,6 @@ return {
             '.python-version',
             '.venv',
             '.turbo',
-            '.husky',
           },
           hide_by_pattern = { -- uses glob style patterns
             --"*.meta",

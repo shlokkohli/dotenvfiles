@@ -35,7 +35,6 @@ M.exclusions = {
     multiline_glob = '!.venv/**',
   }),
   exclude('.turbo', { files = true, picker = true }),
-  exclude('.husky', { files = true, picker = true }),
   exclude('__pycache__', { files = true, picker = true, literal = true, multiline = true }),
   exclude('_pycache', { files = true, picker = true, literal = true, multiline = true }),
   exclude('package-lock.json', {

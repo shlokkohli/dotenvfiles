@@ -36,15 +36,6 @@ export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 export PATH="/Library/PostgreSQL/17/bin:$PATH"
 
-# Keys & Credentials
-if [ -f "$HOME/.keys" ]; then
-  source "$HOME/.keys"
-elif [ -f "$HOME/.keys.zsh" ]; then
-  source "$HOME/.keys.zsh"
-elif [ -f "$HOME/dotfiles/keys.zsh" ]; then
-  source "$HOME/dotfiles/keys.zsh"
-fi
-
 # Aliases
 alias c="clear"
 alias v="nvim"
@@ -58,8 +49,6 @@ eval "$(zoxide init zsh)"
 # fzf
 source <(fzf --zsh)
 
-# Tab to accept autosuggestion (if one exists), fallback to normal completion
-# Must be LAST — fzf and other tools rebind Tab during their init
 _accept_or_complete() {
   if [[ -n "$POSTDISPLAY" ]]; then
     zle autosuggest-accept

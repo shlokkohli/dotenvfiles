@@ -635,6 +635,7 @@ return {
         search = search,
         use_regex = true,
         additional_args = additional_args,
+        search_dirs = opts and opts.search_dirs or nil,
       }
     end
 
@@ -772,8 +773,9 @@ return {
 
       local case_sensitive = false
 
+      local title_prefix = opts.prompt_title and (opts.prompt_title .. ' ') or ''
       local function case_mode_title()
-        return case_sensitive and 'Live Grep [Case Sensitive]' or 'Live Grep [Case Insensitive]'
+        return title_prefix .. (case_sensitive and '[Case Sensitive]' or '[Case Insensitive]')
       end
 
       opts.__inverted = false
@@ -796,6 +798,10 @@ return {
           table.insert(args, 2, '--json')
 
           vim.list_extend(args, { '--', search })
+          -- Restrict to diff files when search_dirs is set
+          if opts.search_dirs and #opts.search_dirs > 0 then
+            vim.list_extend(args, opts.search_dirs)
+          end
           return args
         end, opts.entry_maker or make_json_grep_entry, opts.max_results, opts.cwd)
       end
@@ -847,8 +853,48 @@ return {
 
     -- Telescope prompts are single-line, so show pasted newlines as \n while
     -- sending real newlines to ripgrep with --multiline.
+    -- Returns true when a diffview tab is currently open
+    local function is_in_diffview()
+      local ok, lib = pcall(require, 'diffview.lib')
+      return ok and lib.get_current_view() ~= nil
+    end
+
+    -- Returns a list of absolute file paths that are part of the current diff
+    -- (modified, staged, and untracked files relative to the git root).
+    local function get_diffview_changed_files()
+      local root = vim.fn.systemlist({ 'git', 'rev-parse', '--show-toplevel' })
+      if vim.v.shell_error ~= 0 or #root == 0 then
+        return nil
+      end
+      local git_root = root[1]
+
+      -- staged + unstaged changes
+      local changed = vim.fn.systemlist({ 'git', 'diff', '--name-only', 'HEAD' })
+      -- untracked files
+      local untracked = vim.fn.systemlist({ 'git', 'ls-files', '--others', '--exclude-standard' })
+
+      local seen = {}
+      local files = {}
+      for _, rel in ipairs(vim.list_extend(changed, untracked)) do
+        local abs = git_root .. '/' .. rel
+        if not seen[abs] then
+          seen[abs] = true
+          table.insert(files, abs)
+        end
+      end
+      return #files > 0 and files or nil
+    end
+
     local function live_grep_smart()
       local mode = vim.fn.mode()
+
+      -- Scope to diff files when diffview is active
+      local diff_files = is_in_diffview() and get_diffview_changed_files() or nil
+      local extra_opts = diff_files and {
+        search_dirs = diff_files,
+        prompt_title = 'Grep (Diff Files)',
+      } or {}
+
       if mode == 'v' or mode == 'V' or mode == '\22' then
         -- Visual mode: grab the selection
         local text = get_visual_selection()
@@ -856,27 +902,40 @@ return {
         local lines = vim.fn.split(trimmed, '\n', true)
 
         if #lines > 1 and trimmed ~= '' then
-          live_grep_multiline {
+          live_grep_multiline(vim.tbl_extend('force', extra_opts, {
             default_text = multiline_prompt_text(trimmed),
-          }
+          }))
         else
-          live_grep_multiline {
+          live_grep_multiline(vim.tbl_extend('force', extra_opts, {
             default_text = trimmed ~= '' and multiline_prompt_text(trimmed) or nil,
-          }
+          }))
         end
       else
-        live_grep_multiline()
+        live_grep_multiline(extra_opts)
       end
     end
 
     local function search_by_literal_grep()
       local mode = vim.fn.mode()
+
+      -- Scope to diff files when diffview is active
+      local diff_files = is_in_diffview() and get_diffview_changed_files() or nil
+
+      local function do_literal_grep(query, opts)
+        opts = opts or {}
+        if diff_files then
+          opts.search_dirs = diff_files
+          opts.prompt_title = (opts.prompt_title or 'Grep literal') .. ' (Diff Files)'
+        end
+        literal_grep(query, opts)
+      end
+
       if mode == 'v' or mode == 'V' or mode == '\22' then
         local text = get_visual_selection()
         local selected = text and text:gsub('[\r\n]+$', '') or ''
         local lines = vim.fn.split(selected, '\n', true)
 
-        literal_grep(selected, {
+        do_literal_grep(selected, {
           prompt_title = #lines > 1 and 'Grep multiline' or 'Grep literal',
           multiline = #lines > 1,
         })
@@ -884,7 +943,7 @@ return {
       end
 
       local query = vim.fn.input 'Grep literal > '
-      literal_grep(query, { prompt_title = 'Grep literal' })
+      do_literal_grep(query, { prompt_title = 'Grep literal' })
     end
 
     local function current_buffer_diagnostics()
@@ -917,7 +976,25 @@ return {
 
     local telescope_modes = { 'n', 'x' }
     vim.keymap.set(telescope_modes, '<leader>sk', toggle_telescope('<leader>sk', builtin.keymaps), { desc = '[S]earch [K]eymaps' })
-    vim.keymap.set(telescope_modes, '<leader>sf', toggle_telescope('<leader>sf', builtin.find_files), { desc = '[S]earch [F]iles' })
+    vim.keymap.set(telescope_modes, '<leader>sf', toggle_telescope('<leader>sf', function()
+      local diff_files = is_in_diffview() and get_diffview_changed_files() or nil
+      if diff_files then
+        -- Build a minimal picker listing exactly the diff files
+        pickers
+          .new({}, {
+            prompt_title = 'Find Files (Diff)',
+            finder = finders.new_table {
+              results = diff_files,
+              entry_maker = make_entry.gen_from_file {},
+            },
+            previewer = conf.file_previewer {},
+            sorter = conf.file_sorter {},
+          })
+          :find()
+      else
+        builtin.find_files()
+      end
+    end), { desc = '[S]earch [F]iles' })
     vim.keymap.set(telescope_modes, '<leader>ss', toggle_telescope('<leader>ss', builtin.builtin), { desc = '[S]earch [S]elect Telescope' })
     vim.keymap.set(telescope_modes, '<leader>sc', toggle_telescope('<leader>sc', function()
       builtin.grep_string {
@@ -939,7 +1016,18 @@ return {
     end), { desc = '[/] Search in current buffer' })
 
     -- Search specifically in files currently open in buffers
+    -- (falls back to diff files when diffview is active)
     vim.keymap.set(telescope_modes, '<leader>s/', toggle_telescope('<leader>s/', function()
+      if is_in_diffview() then
+        local diff_files = get_diffview_changed_files()
+        if diff_files then
+          builtin.live_grep {
+            search_dirs = diff_files,
+            prompt_title = 'Live Grep in Diff Files',
+          }
+          return
+        end
+      end
       builtin.live_grep {
         grep_open_files = true,
         prompt_title = 'Live Grep in Open Files',
