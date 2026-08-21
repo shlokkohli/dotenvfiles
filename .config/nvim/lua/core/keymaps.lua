@@ -184,9 +184,12 @@ vim.keymap.set({ 'v', 'x', 's' }, 'K', '<Nop>', { noremap = true, silent = true 
 vim.keymap.set({ 'n', 'v' }, 'd', '"_d', { noremap = true, silent = true })
 vim.keymap.set({ 'n', 'v' }, 'D', '"_D', { noremap = true, silent = true })
 
--- normal and visual mode: _d = cut (yank + delete)
-vim.keymap.set({ 'n', 'v' }, '_d', 'd', { noremap = true, silent = true })
-vim.keymap.set({ 'n', 'v' }, '_D', 'D', { noremap = true, silent = true })
+-- visual mode: _d = cut selection to clipboard + delete
+vim.keymap.set('v', '_d', '"+d', { noremap = true, silent = true })
+vim.keymap.set('v', '_D', '"+D', { noremap = true, silent = true })
+-- normal mode: _d is a cut-operator prefix (compose like _dd, _diw, _d$); _d alone does nothing
+vim.keymap.set('n', '_d', '"+d', { noremap = true, silent = true })
+vim.keymap.set('n', '_D', '"+D', { noremap = true, silent = true })
 
 -- normal and visual mode: c = change (no yank)
 vim.keymap.set({ 'n', 'v' }, 'c', '"_c', { noremap = true, silent = true })
