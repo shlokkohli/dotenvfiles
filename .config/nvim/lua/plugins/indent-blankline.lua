@@ -43,7 +43,6 @@ return {
         },
         filetypes = {
           '',
-          'alpha',
           'checkhealth',
           'dashboard',
           'git',

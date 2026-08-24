@@ -62,3 +62,6 @@ bindkey '\t' _accept_or_complete
 
 # opencode
 export PATH=/Users/shlok/.opencode/bin:$PATH
+
+# Superfile cd-on-quit wrapper
+source ~/.config/zsh/spf.zsh

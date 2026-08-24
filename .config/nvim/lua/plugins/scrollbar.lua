@@ -10,7 +10,7 @@ return {
         zindex = 40,
         excluded_filetypes = {
           'neo-tree',
-          'alpha',
+          'dashboard',
           'lazy',
           'mason',
           'TelescopePrompt',

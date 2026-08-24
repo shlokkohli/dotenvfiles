@@ -38,7 +38,7 @@ require('lazy').setup {
   require 'plugins.conform',
   require 'plugins.none-ls',
   require 'plugins.gitsigns',
-  require 'plugins.alpha',
+  require 'plugins.dashboard',
   require 'plugins.indent-blankline',
   require 'plugins.misc',
   require 'plugins.comment',
