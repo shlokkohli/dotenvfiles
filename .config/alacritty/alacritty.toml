@@ -1,0 +1,122 @@
+[window]
+padding = { x = 2, y = 2 }
+dynamic_padding = false
+opacity = 0.94
+# Alacritty supports blur but does not expose Ghostty's blur radius of 15.
+blur = true
+decorations = "Full"
+startup_mode = "Maximized"
+dynamic_title = true
+resize_increments = false
+option_as_alt = "Both"
+
+[scrolling]
+history = 100000
+multiplier = 3
+
+[font]
+size = 14
+normal = { family = "JetBrainsMono Nerd Font", style = "Regular" }
+bold = { family = "JetBrainsMono Nerd Font", style = "Bold" }
+italic = { family = "JetBrainsMono Nerd Font", style = "Italic" }
+bold_italic = { family = "JetBrainsMono Nerd Font", style = "Bold Italic" }
+# Alacritty uses pixel offsets instead of Ghostty's 20% cell-height adjustment.
+offset = { x = 0, y = 3 }
+
+[colors]
+transparent_background_colors = false
+draw_bold_text_with_bright_colors = false
+
+[colors.primary]
+background = "#282c34"
+foreground = "#ffffff"
+
+[colors.normal]
+black = "#1d1f21"
+red = "#cc6666"
+green = "#b5bd68"
+yellow = "#f0c674"
+blue = "#81a2be"
+magenta = "#b294bb"
+cyan = "#8abeb7"
+white = "#c5c8c6"
+
+[colors.bright]
+black = "#666666"
+red = "#d54e53"
+green = "#b9ca4a"
+yellow = "#e7c547"
+blue = "#7aa6da"
+magenta = "#c397d8"
+cyan = "#70c0b1"
+white = "#eaeaea"
+
+[colors.cursor]
+text = "#282c34"
+cursor = "#ffffff"
+
+[colors.selection]
+text = "CellBackground"
+background = "CellForeground"
+
+[cursor]
+style = { shape = "Block", blinking = "Off" }
+unfocused_hollow = true
+
+[selection]
+semantic_escape_chars = ",│`|:\"' ()[]{}<>\t"
+save_to_clipboard = true
+
+[mouse]
+hide_when_typing = false
+
+[[keyboard.bindings]]
+key = "Tab"
+mods = "Control"
+chars = "\u001b[27;5;9~"
+
+[[keyboard.bindings]]
+key = "Tab"
+mods = "Control|Shift"
+chars = "\u001b[27;6;9~"
+
+[[keyboard.bindings]]
+key = "I"
+mods = "Control"
+chars = "\u001b[Z"
+
+[[keyboard.bindings]]
+key = "Enter"
+mods = "Command"
+action = "None"
+
+[[keyboard.bindings]]
+key = "T"
+mods = "Command"
+action = "CreateNewTab"
+
+[[keyboard.bindings]]
+key = "Back"
+mods = "Command"
+chars = "\u0015"
+
+[[keyboard.bindings]]
+key = "Back"
+mods = "Control"
+chars = "\u0017"
+
+[[keyboard.bindings]]
+key = "Back"
+mods = "Alt"
+chars = "\u0017"
+
+# Option+Enter / Shift+Enter -> newline (single) - send LF only
+[[keyboard.bindings]]
+key = "Enter"
+mods = "Alt"
+chars = "\n"
+
+[[keyboard.bindings]]
+key = "Enter"
+mods = "Shift"
+chars = "\n"

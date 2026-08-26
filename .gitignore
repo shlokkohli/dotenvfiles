@@ -22,3 +22,7 @@
 !.config/tmux/**
 !.config/zed/
 !.config/zed/**
+!.config/alacritty/
+!.config/alacritty/**
+!.config/zsh/
+!.config/zsh/**
