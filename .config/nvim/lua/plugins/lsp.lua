@@ -38,7 +38,7 @@ return {
     -- and elegantly composed help section, `:help lsp-vs-treesitter`
 
     -- disable LSP logging to avoid performance and freeze issues
-    vim.lsp.set_log_level 'OFF'
+    vim.lsp.log.set_level(vim.log.levels.OFF)
 
     -- Toggle context float: second K closes the float.
     -- Prefer diagnostics at the cursor (like VS Code hover on squiggles),

@@ -5,8 +5,11 @@ plugins=(git zsh-autosuggestions)
 source $ZSH/oh-my-zsh.sh
 
 
+# Homebrew (must be early so /opt/homebrew/bin shadows /usr/bin for python)
+eval "$(/opt/homebrew/bin/brew shellenv)"
+
 # PATH & env
-export PATH=$PATH:/Users/shlok/mongodb-macos-aarch64-7.0.8/bin
+export PATH=$PATH:/Users/shlokkohli/mongodb-macos-aarch64-7.0.8/bin
 
 # Rust / Cargo
 source "$HOME/.cargo/env"
@@ -20,7 +23,7 @@ export JAVA_HOME="/Library/Java/JavaVirtualMachines/jdk-17.jdk/Contents/Home"
 export PATH="$JAVA_HOME/bin:$PATH"
 
 # pipx
-export PATH="$PATH:/Users/shlok/.local/bin"
+export PATH="$PATH:/Users/shlokkohli/.local/bin"
 
 # nvm
 export NVM_DIR="$HOME/.nvm"
@@ -58,7 +61,7 @@ bindkey '\t' _accept_or_complete
 
 
 # opencode
-export PATH=/Users/shlok/.opencode/bin:$PATH
+export PATH=/Users/shlokkohli/.opencode/bin:$PATH
 
 # Superfile cd-on-quit wrapper
 source ~/.config/zsh/spf.zsh
