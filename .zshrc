@@ -19,9 +19,6 @@ export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin
 export JAVA_HOME="/Library/Java/JavaVirtualMachines/jdk-17.jdk/Contents/Home"
 export PATH="$JAVA_HOME/bin:$PATH"
 
-# Antigravity
-export PATH="/Users/shlok/.antigravity/antigravity/bin:$PATH"
-
 # pipx
 export PATH="$PATH:/Users/shlok/.local/bin"
 
@@ -65,3 +62,6 @@ export PATH=/Users/shlok/.opencode/bin:$PATH
 
 # Superfile cd-on-quit wrapper
 source ~/.config/zsh/spf.zsh
+
+# Added by Antigravity CLI installer
+export PATH="/Users/shlokkohli/.local/bin:$PATH"
