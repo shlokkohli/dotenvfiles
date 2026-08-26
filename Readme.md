@@ -6,29 +6,33 @@ Works on **macOS and Linux only**. Does not work on Windows.
 
 ---
 
-## Setting up on a new machine
+## Which guide do I follow?
 
-### macOS (Automatic Setup)
-
-To fully automate the setup of a new or reset macOS machine, we provide a bootstrap script. It installs Xcode Command Line Tools, Homebrew (restoring all packages, casks, and VS Code extensions defined in the `Brewfile`), Oh My Zsh with custom plugins, GNU Stow, NVM with Node v22, and symlinks all your dotfiles automatically.
-
-1. **Clone this repo** into your home directory as `dotfiles`:
-   ```bash
-   git clone git@github.com:shlokkohli/dotfiles.git ~/dotfiles
-   ```
-
-2. **Run the bootstrap script**:
-   ```bash
-   bash ~/dotfiles/bootstrap.sh
-   ```
-
-3. **Restart your terminal** or run `source ~/.zshrc` to activate the configuration!
+| Situation | What to read |
+|---|---|
+| **Fresh / reset Mac, doing it by hand** | **[SETUP.md](SETUP.md)** — step-by-step, no AI needed (git → clone → symlink → node) |
+| **Want everything automated at once** | `bash ~/dotfiles/bootstrap.sh` — one-liner, installs everything (see below) |
 
 ---
 
-### Manual Setup (or Linux)
+## Quick start (automated)
 
-If you prefer to set up manually or are on a Linux machine:
+The bootstrap script installs Xcode Command Line Tools, Homebrew + everything in `Brewfile`, Oh My Zsh + `zsh-autosuggestions`, GNU Stow symlinks, NVM + Node 24 (+ global npm packages), Rust via rustup, Java 17, opencode, and runs the Neovim setup. It's safe to re-run.
+
+```bash
+git clone https://github.com/shlokkohli/dotfiles.git ~/dotfiles
+bash ~/dotfiles/bootstrap.sh
+```
+
+Restart your terminal or run `source ~/.zshrc`.
+
+> Detailed manual steps with explanations of every command are in **[SETUP.md](SETUP.md)**. If you get stuck at any point, that file has you covered.
+
+---
+
+## Manual Setup (or Linux)
+
+If you prefer to set up by hand or are on Linux:
 
 1. **Install GNU Stow**:
    - **macOS**: `brew install stow`
@@ -36,7 +40,7 @@ If you prefer to set up manually or are on a Linux machine:
 
 2. **Clone this repo** into your home directory as `dotfiles`:
    ```bash
-   git clone git@github.com:shlokkohli/dotfiles.git ~/dotfiles
+   git clone https://github.com/shlokkohli/dotfiles.git ~/dotfiles
    ```
 
 3. **Symlink dotfiles**:

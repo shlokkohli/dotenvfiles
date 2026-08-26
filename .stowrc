@@ -3,4 +3,5 @@
 --ignore=nvim-setup.sh
 --ignore=.gitignore
 --ignore=Readme.md
+--ignore=SETUP.md
 --ignore=\.DS_Store
