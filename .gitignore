@@ -4,6 +4,7 @@
 
 # Un-ignore root dotfiles
 !.gitignore
+!.gitconfig
 !.zshrc
 !.zshenv
 !Readme.md
