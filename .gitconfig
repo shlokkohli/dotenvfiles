@@ -2,4 +2,14 @@
 	name = Shlok Kohli
 	email = shlokkohli11@gmail.com
 [core]
-	pager = less -FR
+	pager = delta
+[interactive]
+	diffFilter = delta --color-only
+[delta]
+	navigate = true
+	side-by-side = true
+	line-numbers = true
+[merge]
+	conflictstyle = diff3
+[diff]
+	colorMoved = default
