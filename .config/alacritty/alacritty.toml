@@ -110,6 +110,28 @@ key = "Back"
 mods = "Alt"
 chars = "\u0017"
 
+# Shell-style cursor navigation.  Option sends Meta-B/F for word movement;
+# Command sends Ctrl-A/E for start/end of the current command line.
+[[keyboard.bindings]]
+key = "Left"
+mods = "Alt"
+chars = "\u001bb"
+
+[[keyboard.bindings]]
+key = "Right"
+mods = "Alt"
+chars = "\u001bf"
+
+[[keyboard.bindings]]
+key = "Left"
+mods = "Command"
+chars = "\u0001"
+
+[[keyboard.bindings]]
+key = "Right"
+mods = "Command"
+chars = "\u0005"
+
 # Option+Enter / Shift+Enter -> newline (single) - send LF only
 [[keyboard.bindings]]
 key = "Enter"
