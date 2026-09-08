@@ -237,6 +237,47 @@ return {
             return
           end
 
+          local escaped = vim.pesc(symbol)
+          local declaration_patterns = {
+            -- function declarations (named / exported)
+            '%f[%w_]function%s+' .. escaped .. '%f[^%w_]',
+            -- const/let/var arrow-function or value assignments
+            '%f[%w_]const%s+' .. escaped .. '%f[^%w_]',
+            '%f[%w_]let%s+' .. escaped .. '%f[^%w_]',
+            '%f[%w_]var%s+' .. escaped .. '%f[^%w_]',
+            -- class / interface / type alias
+            '%f[%w_]class%s+' .. escaped .. '%f[^%w_]',
+            '%f[%w_]interface%s+' .. escaped .. '%f[^%w_]',
+            '%f[%w_]type%s+' .. escaped .. '%f[^%w_]',
+          }
+
+          local declarations = vim.tbl_filter(function(item)
+            local text = item.text or ''
+            -- Exclude pure import lines and JSX usage lines
+            if text:match '^%s*import%s*{' or text:match '^%s*import%s+' then
+              return false
+            end
+            if text:match '^%s*<%/?' .. escaped then
+              return false
+            end
+            for _, pat in ipairs(declaration_patterns) do
+              if text:match(pat) then
+                return true
+              end
+            end
+            return false
+          end, items)
+
+          if #declarations == 1 then
+            push_tagstack(symbol)
+            if declarations[1].filename ~= current_file then
+              vim.cmd('edit ' .. vim.fn.fnameescape(declarations[1].filename))
+            end
+            vim.api.nvim_win_set_cursor(0, { declarations[1].lnum, math.max(declarations[1].col - 1, 0) })
+            vim.cmd 'normal! zz'
+            return
+          end
+
           if #items == 1 then
             push_tagstack(symbol)
             if items[1].filename ~= current_file then
